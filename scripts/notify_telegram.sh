@@ -101,7 +101,8 @@ CAPTION="🔧 <b>Ghost Kernel Build</b>
 ⚙️ ${KBUILD_COMPILER_STRING}
 ⏱️ ${DUR_TEXT} · 💾 ${FILE_SIZE}
 🔐 <code>${SHA256_FULL}</code>
-${CHANGELOG_TEXT}📅 ${BUILD_DATE}"
+${CHANGELOG_TEXT}
+📅 ${BUILD_DATE}"
 
 # Truncate if over 1024 chars (Telegram caption limit)
 MAX_CAPTION=1000
