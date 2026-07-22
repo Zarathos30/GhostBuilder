@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/functions.sh"
 
 KERNEL_DIR="${GITHUB_WORKSPACE}/kernel-source"
-BUILDER_DIR="${GITHUB_WORKSPACE}/builder"
 ZIP_PATH="${KERNEL_DIR}/GhostKernel-Release/${ZIP_NAME}"
 
 esc() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
@@ -90,19 +89,28 @@ esac
 
 FILE_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
 SHA256_FULL=$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)
-SHA256_SHORT="${SHA256_FULL:0:12}"
 
 BUILD_DATE=$(date -u "+%Y-%m-%d %H:%M UTC")
 
 DUR="${BUILD_DURATION_SEC:-0}"
 DUR_TEXT="$((DUR / 60))m $((DUR % 60))s"
 
+CHANGELOG_TEXT="$(printf '%b' "$CHANGELOG_TEXT" | sed '/^$/d')"
+
 CAPTION="🔧 <b>Ghost Kernel Build</b>
 
 📦 <code>${KERNEL_VER}</code> · ${VARIANT_LABEL}
-🔗 LTO: ${LTO_ACTUAL} · ⚙️ ${KBUILD_COMPILER_STRING}
-🔢 ${HZ_ID} Hz · ⏱️ ${DUR_TEXT}
-🔐 <code>${SHA256_SHORT}</code>"
+🔢 ${HZ_ID} Hz · 🔗 LTO: ${LTO_ACTUAL}
+⚙️ ${KBUILD_COMPILER_STRING}
+⏱️ ${DUR_TEXT} · 💾 ${FILE_SIZE}
+🔐 <code>${SHA256_FULL}</code>
+${CHANGELOG_TEXT}📅 ${BUILD_DATE}"
+
+# Truncate if over 1024 chars (Telegram caption limit)
+MAX_CAPTION=1000
+if [ ${#CAPTION} -gt $MAX_CAPTION ]; then
+  CAPTION="${CAPTION:0:$MAX_CAPTION}..."
+fi
 
 SEND_DOC=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument" \
   -F chat_id="${TELEGRAM_CHAT_ID}" \
@@ -110,53 +118,16 @@ SEND_DOC=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDo
   -F caption="${CAPTION}" \
   -F document=@"${ZIP_PATH}")
 
-if ! echo "$SEND_DOC" | grep -q '"ok":true'; then
-  warn "Failed to upload file to Telegram. Response:"
-  echo "$SEND_DOC"
-  exit 1
-fi
-
-MSG_ID=$(echo "$SEND_DOC" | jq -r '.result.message_id')
-
-CHANGELOG_TEXT="$(printf '%b' "$CHANGELOG_TEXT" | sed '/^$/d')"
-
-DETAIL="📋 <b>Build Detail</b>
-
-<b>Specs:</b>
-📦 Version: <code>${KERNEL_VER}</code>
-🌿 Variant: ${VARIANT_LABEL}
-🔢 HZ: ${HZ_ID} Hz
-🔗 LTO: ${LTO_ACTUAL}
-⚙️ Clang: ${KBUILD_COMPILER_STRING}
-${CHANGELOG_TEXT}<b>Build Info:</b>
-📁 Name: <code>${ZIP_NAME}</code>
-💾 Size: ${FILE_SIZE}
-🔐 SHA256: <code>${SHA256_FULL}</code>
-⏱️ Duration: ${DUR_TEXT}
-📅 Date: ${BUILD_DATE}"
-
-SEND_DETAIL=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-  -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d parse_mode="HTML" \
-  -d reply_to_message_id="${MSG_ID}" \
-  --data-urlencode text="$DETAIL")
-
 update_tag() {
   local repo_dir="$1" tag_name="$2"
   (cd "$repo_dir" && git tag -f "$tag_name" && git push origin "$tag_name" --force 2>/dev/null) || warn "Failed to push tag $tag_name in $repo_dir"
 }
 
-if echo "$SEND_DETAIL" | grep -q '"ok":true'; then
-  log "Telegram notification (file + detail) sent."
+if echo "$SEND_DOC" | grep -q '"ok":true'; then
+  log "Telegram notification sent."
   update_tag "$KERNEL_DIR" "ghostkernel-last-notified"
-  update_tag "$BUILDER_DIR" "ghostkernel-builder-last-notified"
 else
-  warn "File sent, but detail message failed. Trying plain text fallback..."
-  echo "$SEND_DETAIL"
-  curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-    -d chat_id="${TELEGRAM_CHAT_ID}" \
-    -d reply_to_message_id="${MSG_ID}" \
-    --data-urlencode text="$DETAIL" > /dev/null
-  update_tag "$KERNEL_DIR" "ghostkernel-last-notified"
-  update_tag "$BUILDER_DIR" "ghostkernel-builder-last-notified"
+  warn "Failed to send file. Response:"
+  echo "$SEND_DOC"
+  exit 1
 fi
