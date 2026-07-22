@@ -55,6 +55,14 @@ inputs:
   kernel_clone_token:
     description: "Token to clone private kernel mirror"
     required: true
+  telegram_token:
+    description: "Telegram bot token (for build progress updates)"
+    required: false
+    default: ""
+  telegram_chat_id:
+    description: "Telegram chat id (for build progress updates)"
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -252,5 +260,9 @@ runs:
         INPUT_LTO: ${{ inputs.lto }}
         INPUT_VERSION_SPOOF: ${{ inputs.kernel_version_spoof }}
         GH_TOKEN: ${{ github.token }}
+        TELEGRAM_TOKEN: ${{ inputs.telegram_token }}
+        TELEGRAM_CHAT_ID: ${{ inputs.telegram_chat_id }}
       run: |
+        BUILD_START=$(date +%s)
+        bash builder/scripts/progress.sh 2400 "$BUILD_START" &
         bash builder/scripts/build.sh
