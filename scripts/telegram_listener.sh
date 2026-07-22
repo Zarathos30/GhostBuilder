@@ -4,7 +4,7 @@ set -e
 TOKEN="${TELEGRAM_TOKEN:?TELEGRAM_TOKEN not set}"
 CHAT_ID="${TELEGRAM_CHAT_ID:?TELEGRAM_CHAT_ID not set}"
 
-UPDATES=$(curl -s "https://api.telegram.org/bot${TOKEN}/getUpdates?timeout=5&allowed_updates=channel_post")
+UPDATES=$(curl -s "https://api.telegram.org/bot${TOKEN}/getUpdates?timeout=5&allowed_updates=message,channel_post")
 
 echo "DEBUG: Telegram response:"
 echo "$UPDATES" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'ok={d.get(\"ok\")}, updates={len(d.get(\"result\",[]))}')" 2>/dev/null || echo "$UPDATES" | head -c 500
@@ -15,9 +15,9 @@ import json, sys
 chat_id = '$CHAT_ID'
 data = json.load(sys.stdin)
 for r in data.get('result', []):
-    cp = r.get('channel_post', {})
-    cid = str(cp.get('chat', {}).get('id', ''))
-    text = cp.get('text', '')
+    msg = r.get('message') or r.get('channel_post') or {}
+    cid = str(msg.get('chat', {}).get('id', ''))
+    text = msg.get('text', '')
     if chat_id == cid and text:
         print(text)
 ")
