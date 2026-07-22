@@ -1,5 +1,9 @@
 name: Ghost Kernel Builder
 
+concurrency:
+  group: kernel-build
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
