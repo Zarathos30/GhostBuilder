@@ -52,8 +52,8 @@ apply_and_push() {
 }
 
 if [ "$BUILD_OUTCOME" = "success" ]; then
-    git config user.name  "DumpC2J Bot"
-    git config user.email "bot@dumpc2j"
+    git config user.name  "GhostKernel Bot"
+    git config user.email "bot@ghostkernel"
     REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
     log "engine: promoting ${KEY} pin to ${ref:0:12}"
     apply_and_push \

@@ -6,7 +6,7 @@ inputs:
     description: "Build variant (stock|susfs|root)"
     required: true
   root:
-    description: "Root method (none|sukisu|bakasu|ksu-next)"
+    description: "Root method (none|sukisu|bakasu|resukisu|ksu-next)"
     required: true
   hz:
     description: "Refresh Rate (HZ)"
@@ -44,6 +44,14 @@ inputs:
     description: "Spoof Kernel Version (leave blank to use upstream)"
     required: false
     default: ""
+  spoof_uname:
+    description: "Spoof Uname (SUSFS/Stock Naming)"
+    required: false
+    default: "false"
+  run_mode:
+    description: "Run Mode (Release=pinned only, Test=check upstream)"
+    required: false
+    default: "Release"
   kernel_clone_token:
     description: "Token to clone private kernel mirror"
     required: true
@@ -76,8 +84,8 @@ runs:
         KERNEL_CLONE_TOKEN: ${{ inputs.kernel_clone_token }}
       run: |
         git clone --depth=50 --filter=blob:none \
-          --branch android14-6.6 \
-          https://x-access-token:${KERNEL_CLONE_TOKEN}@github.com/adennnqt/DumpC2J-Mirror-6.6.git \
+          --branch main \
+          https://x-access-token:${KERNEL_CLONE_TOKEN}@github.com/Zarathos30/GhostKernel.git \
           kernel-source
 
     - name: Parse Inputs
@@ -92,6 +100,7 @@ runs:
         IN_DROIDSPACES: ${{ inputs.droidspaces }}
         IN_DEBUG: ${{ inputs.debug }}
         IN_NOMOUNT: ${{ inputs.nomount }}
+        IN_SPOOF: ${{ inputs.spoof_uname }}
         IN_KERNEL_NAME: ${{ inputs.kernel_name }}
       run: |
         onoff() { [ "$1" = "true" ] && echo on || echo off; }
@@ -99,7 +108,7 @@ runs:
         INPUT_WIFI="on"
         INPUT_KGSL="on"
         INPUT_DATA="on"
-        INPUT_SPOOF_UNAME="on"
+        INPUT_SPOOF_UNAME="$(onoff "$IN_SPOOF")"
         INPUT_BYPASS="$(onoff "$IN_BYPASS")"
         INPUT_DROIDSPACES="$(onoff "$IN_DROIDSPACES")"
         INPUT_DEBUG="$(onoff "$IN_DEBUG")"
@@ -116,6 +125,11 @@ runs:
         ACTUAL_ROOT="$IN_ROOT"
         if [ "$IN_VARIANT" == "stock" ]; then
           ACTUAL_ROOT="none"
+        fi
+        # ReSukiSU was renamed BakaSU upstream — keep the bot's "resukisu" value working
+        if [ "$ACTUAL_ROOT" == "resukisu" ]; then
+          ACTUAL_ROOT="bakasu"
+          IN_ROOT="bakasu"
         fi
         echo "ACTUAL_ROOT=$ACTUAL_ROOT" >> $GITHUB_ENV
 
@@ -209,6 +223,7 @@ runs:
       env:
         ROOT: ${{ env.ACTUAL_ROOT }}
         VARIANT: ${{ inputs.variant }}
+        RUN_MODE: ${{ inputs.run_mode }}
         GH_TOKEN: ${{ github.token }}
       run: bash builder/scripts/scout.sh
 
@@ -233,7 +248,7 @@ runs:
       env:
         INPUT_HZ: ${{ inputs.hz }}
         INPUT_VARIANT: ${{ inputs.variant }}
-        INPUT_ROOT: ${{ inputs.root }}
+        INPUT_ROOT: ${{ env.ACTUAL_ROOT }}
         INPUT_LTO: ${{ inputs.lto }}
         INPUT_VERSION_SPOOF: ${{ inputs.kernel_version_spoof }}
         GH_TOKEN: ${{ github.token }}

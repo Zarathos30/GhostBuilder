@@ -1,4 +1,4 @@
-name: DumpC2J Kernel Builder
+name: Ghost Kernel Builder
 
 on:
   workflow_dispatch:
@@ -7,7 +7,12 @@ on:
         description: "Custom Kernel Name (LOCALVERSION)"
         required: true
         type: string
-        default: "-DumpC2J"
+        default: "-anykern3-11-GhostKernel"
+      spoof_uname:
+        description: "Spoof Uname (SUSFS/Stock Naming)"
+        required: true
+        type: boolean
+        default: false
       clang_variant:
         description: "Clang Toolchain"
         required: true
@@ -47,6 +52,8 @@ on:
           - none
           - ksu-next
           - sukisu
+          - bakasu
+          - resukisu
         default: sukisu
       lto:
         description: "LTO Mode"
@@ -82,6 +89,14 @@ on:
         required: true
         type: boolean
         default: false
+      run_mode:
+        description: "Run Mode (Release=pinned only, Test=check upstream)"
+        required: true
+        type: choice
+        options:
+          - Release
+          - Test
+        default: Release
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -109,14 +124,16 @@ jobs:
           clang_variant: ${{ inputs.clang_variant }}
           lto: ${{ inputs.lto }}
           kernel_name: ${{ inputs.kernel_name }}
+          spoof_uname: ${{ inputs.spoof_uname }}
           bypasscharging: ${{ inputs.bypasscharging }}
           droidspaces: ${{ inputs.droidspaces }}
           debug: ${{ inputs.debug }}
           nomount: ${{ inputs.nomount }}
+          run_mode: ${{ inputs.run_mode }}
           kernel_version_spoof: ${{ inputs.kernel_version_spoof }}
-          kernel_clone_token: ${{ secrets.KERNEL_CLONE_TOKEN }}
+          kernel_clone_token: ${{ secrets.GH_TOKEN }}
 
-      - name: Save ccache (local part)
+      - name: Save ccache
         if: always()
         continue-on-error: true
         run: bash builder/scripts/ccache_save.sh
@@ -134,3 +151,11 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: bash builder/scripts/notify_telegram.sh
+
+      - name: Upload Artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: GhostKernel-${{ env.BUILD_NAME }}
+          path: kernel-source/GhostKernel-Release
+          retention-days: 1
