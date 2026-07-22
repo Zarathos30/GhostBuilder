@@ -9,6 +9,8 @@ ZIMAGE_DIR="${OUT_DIR}/arch/arm64/boot"
 MODULES_DIR="${KERNEL_DIR}/.root_modules"
 BUILD_START=$(date +"%s")
 
+VERSION="1.0"
+
 HZ="${INPUT_HZ:-250}"
 VARIANT="${INPUT_VARIANT:-stock}"
 ROOT="${INPUT_ROOT:-none}"
@@ -20,11 +22,10 @@ KGSL_EXPLOIT="${INPUT_KGSL:-on}"
 DATA_EXPLOIT="${INPUT_DATA:-on}"
 DROIDSPACES="${INPUT_DROIDSPACES:-off}"
 DEBUG_MODE="${INPUT_DEBUG:-off}"
-KERNEL_NAME="${INPUT_KERNEL_NAME:--DumpC2J}"
+KERNEL_NAME="${INPUT_KERNEL_NAME:-GhostKernel}"
 SPOOF_UNAME="${INPUT_SPOOF_UNAME:-on}"
 VERSION_SPOOF="${INPUT_VERSION_SPOOF:-}"
 NOMOUNT="${INPUT_NOMOUNT:-off}"
-KASUMI="${INPUT_KASUMI:-off}"
 
 case "$HZ" in
   powersave) HZ_ID=100 ;;
@@ -35,5 +36,5 @@ case "$HZ" in
   *) HZ_ID="${HZ}" ;;
 esac
 
-export KBUILD_BUILD_USER="adennnqt"
-export KBUILD_BUILD_HOST="DumpC2J"
+export KBUILD_BUILD_USER="Zarathos30"
+export KBUILD_BUILD_HOST="Ghost"
