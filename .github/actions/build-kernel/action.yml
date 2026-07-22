@@ -265,4 +265,4 @@ runs:
       run: |
         BUILD_START=$(date +%s)
         bash builder/scripts/progress.sh 2400 "$BUILD_START" &
-        bash builder/scripts/build.sh
+        bash builder/scripts/build.sh 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
