@@ -1,4 +1,4 @@
-name: DumpC2J Kernel Builder
+name: Ghost Kernel Builder
 
 on:
   workflow_dispatch:
@@ -7,7 +7,12 @@ on:
         description: "Custom Kernel Name (LOCALVERSION)"
         required: true
         type: string
-        default: "-DumpC2J"
+        default: "-anykern3-11-GhostKernel"
+      spoof_uname:
+        description: "Spoof Uname (SUSFS/Stock Naming)"
+        required: true
+        type: boolean
+        default: false
       clang_variant:
         description: "Clang Toolchain"
         required: true
@@ -46,7 +51,9 @@ on:
         options:
           - none
           - ksu-next
+          - kowsu
           - sukisu
+          - resukisu
         default: sukisu
       lto:
         description: "LTO Mode"
@@ -104,6 +111,9 @@ jobs:
     steps:
       - name: Validate Input Combination
         run: |
+          if [ "${{ inputs.variant }}" == "root" ] && [ "${{ inputs.root }}" == "resukisu" ]; then
+            echo "::warning::ReSukiSU root-only was previously blocked due to a manager-open crash — retesting after execveat_init fix (commit 7667f76)."
+          fi
           echo "[+] Input combination valid: variant=${{ inputs.variant }}, root=${{ inputs.root }}"
 
       - name: Checkout Builder
@@ -114,9 +124,9 @@ jobs:
 
       - name: Clone Kernel Source
         run: |
-          git clone --depth=50 --filter=blob:none \
+          git clone --depth=50 \
             --branch main \
-            https://${{ secrets.GH_TOKEN }}@github.com/adennnqt/DumpC2J-Kernel \
+            https://${{ secrets.GH_TOKEN }}@github.com/Zarathos30/GhostKernel \
             kernel-source
 
       - name: Parse Inputs
@@ -185,18 +195,6 @@ jobs:
             rsync schedtool squashfs-tools xsltproc zip zlib1g-dev \
             python3 clang lld llvm jq
 
-      - name: Get Cache Week
-        id: cacheweek
-        if: inputs.clang_variant != 'neutron'
-        run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Clang Toolchain
-        if: inputs.clang_variant != 'neutron'
-        uses: actions/cache@v4
-        with:
-          path: ~/toolchains/${{ inputs.clang_variant }}-clang
-          key: clang-${{ inputs.clang_variant }}-${{ steps.cacheweek.outputs.week }}
-
       - name: Setup Clang
         run: |
           bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }}
@@ -216,17 +214,10 @@ jobs:
 
       - name: Setup ccache
         env:
+          ACTUAL_ROOT: ${{ env.ACTUAL_ROOT }}
           CLANG_VARIANT: ${{ inputs.clang_variant }}
-          LTO: ${{ inputs.lto }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: bash builder/scripts/lib/ccache_setup.sh
-
-      - name: Cache LTO Linker Cache
-        if: inputs.lto == 'thin'
-        uses: actions/cache@v4
-        with:
-          path: /dev/shm/ldcache
-          key: ldcache-${{ inputs.clang_variant }}-${{ inputs.lto }}
 
       - name: Build Kernel
         env:
@@ -249,17 +240,11 @@ jobs:
         run: |
           bash builder/scripts/build.sh
 
-      - name: Save ccache (local part)
+      - name: Save ccache
         if: always()
-        continue-on-error: true
-        run: bash builder/scripts/lib/ccache_save.sh
-
-      - name: Publish ccache
-        if: always()
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: bash builder/scripts/merge_ccache.sh "$CCACHE_ASSET" "$CCACHE_OUT_DIR"
+        run: bash builder/scripts/lib/ccache_save.sh
 
 
       - name: Notify Telegram
@@ -272,6 +257,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DumpC2J-${{ env.BUILD_NAME }}
-          path: kernel-source/DumpC2J-Release
+          name: GhostKernel-${{ env.BUILD_NAME }}
+          path: kernel-source/GhostKernel-Release
           retention-days: 7

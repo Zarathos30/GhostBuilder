@@ -4,7 +4,7 @@ set -e
 mkdir -p "$OUT_DIR"
 
 make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 \
-  KCFLAGS="$KERNEL_KCFLAGS" LDFLAGS="$KERNEL_LDFLAGS" konoha_defconfig
+  KCFLAGS="$KERNEL_KCFLAGS" LDFLAGS="$KERNEL_LDFLAGS" ghost_defconfig
 
 "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
   -d CONFIG_VDSO32 -d CONFIG_COMPAT_VDSO
@@ -93,7 +93,6 @@ echo "$CURRENT_CMDLINE" | grep -q "init_on_alloc=" || CMDLINE_APPEND="$CMDLINE_A
 echo "$CURRENT_CMDLINE" | grep -q "page_alloc.shuffle=" || CMDLINE_APPEND="$CMDLINE_APPEND page_alloc.shuffle=0"
 echo "$CURRENT_CMDLINE" | grep -q "randomize_kstack_offset=" || CMDLINE_APPEND="$CMDLINE_APPEND randomize_kstack_offset=0"
 echo "$CURRENT_CMDLINE" | grep -q "loglevel=" || CMDLINE_APPEND="$CMDLINE_APPEND loglevel=0"
-echo "$CURRENT_CMDLINE" | grep -q "mem_sleep_default=" || CMDLINE_APPEND="$CMDLINE_APPEND mem_sleep_default=s2idle"
 if [ "$DEBUG_MODE" == "on" ]; then
   echo "$CURRENT_CMDLINE" | grep -q "nokaslr" || CMDLINE_APPEND="$CMDLINE_APPEND nokaslr"
 fi
@@ -107,6 +106,11 @@ CMDLINE_APPEND="${CMDLINE_APPEND# }"
 
 make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
 
+# Re-force droidspaces configs: olddefconfig can silently flip these back off
+# if Kconfig dependency resolution disagrees (e.g. CONFIG_USER_NS is not set
+# in ghost_defconfig). Re-apply after olddefconfig so they always stick.
+# NOTE: CONFIG_USER_NS intentionally NOT force-enabled — Droidspaces hardening
+# checklist requires it disabled; only PID_NS/IPC_NS/SYSVIPC/etc are needed.
 if [ "$DROIDSPACES" == "on" ]; then
   "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
     -e CONFIG_SYSVIPC -e CONFIG_POSIX_MQUEUE -e CONFIG_IPC_NS -e CONFIG_PID_NS \

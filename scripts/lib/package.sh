@@ -29,14 +29,14 @@ if [ "$VARIANT" == "stock" ]; then
 else
   BUILD_TAG="${ROOT}-${VARIANT}"
 fi
-ZIP_NAME="DumpC2J-${BUILD_TAG}-${KERNEL_VER}-${HZ}-${TIME}.zip"
+ZIP_NAME="GhostKernel-${BUILD_TAG}-${KERNEL_VER}-${HZ}-${TIME}.zip"
 cd "$TEMP_DIR" && zip -r9 "${GITHUB_WORKSPACE}/$ZIP_NAME" . \
   -x '.git*' -x 'README.md' -x '*placeholder' > /dev/null
 cd "$GITHUB_WORKSPACE"
 rm -rf "$TEMP_DIR"
 
-mkdir -p "$KERNEL_DIR/DumpC2J-Release"
-cp "$ZIP_NAME" "$KERNEL_DIR/DumpC2J-Release/"
+mkdir -p "$KERNEL_DIR/GhostKernel-Release"
+cp "$ZIP_NAME" "$KERNEL_DIR/GhostKernel-Release/"
 
 
 echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"

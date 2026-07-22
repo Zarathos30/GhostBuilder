@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=DumpC2J Kernel
+kernel.string=Ghost Kernel
 do.devicecheck=0
 do.modules=0
 do.systemless=0
@@ -35,7 +35,7 @@ no_magisk_check=1
 kernel_version=$(uname -r)
 
 ui_print " "
-ui_print " DumpC2J Kernel"
+ui_print " Ghost Kernel"
 ui_print " Running : $kernel_version"
 ui_print " "
 ui_print " Flashing boomkernel, please wait..."
