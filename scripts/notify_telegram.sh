@@ -11,9 +11,9 @@ get_raw_log() {
   local repo_dir="$1" tag_name="$2"
   (cd "$repo_dir" && git fetch origin "+refs/tags/${tag_name}:refs/tags/${tag_name}" 2>/dev/null || true)
   if (cd "$repo_dir" && git rev-parse "$tag_name" >/dev/null 2>&1); then
-    (cd "$repo_dir" && git log "${tag_name}..HEAD" --no-merges --pretty=format:"%B%x1fAuthor: %an%x1e" || true)
+    (cd "$repo_dir" && git log "${tag_name}..HEAD" --no-merges --pretty=format:"%B%x1e" || true)
   else
-    (cd "$repo_dir" && git log -10 --no-merges --pretty=format:"%B%x1fAuthor: %an%x1e" || true)
+    (cd "$repo_dir" && git log -10 --no-merges --pretty=format:"%B%x1e" || true)
   fi
 }
 
@@ -26,12 +26,6 @@ format_changelog() {
 
   while IFS= read -r -d $'\x1e' commit_body; do
     [ -z "$commit_body" ] && continue
-    author=""
-    if [[ "$commit_body" == *$'\x1f'* ]]; then
-      author=$(echo "$commit_body" | sed -n 's/.*\x1fAuthor: //p')
-      commit_body="${commit_body%$'\x1f'Author: $author}"
-      author=" <i>by $(esc "$author")</i>"
-    fi
     subject=$(head -n1 <<< "$commit_body")
     echo "$subject" | grep -qi '\[ci\]' && continue
 
@@ -64,7 +58,7 @@ format_changelog() {
       fix)  key="fixed" ;;
       *)    key="changed" ;;
     esac
-    groups[$key]="${groups[$key]}• ${desc}${author}\n"
+    groups[$key]="${groups[$key]}• ${desc}\n"
   done <<< "$raw_log"
 
   local out=""
