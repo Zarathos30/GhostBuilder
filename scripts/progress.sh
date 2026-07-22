@@ -14,7 +14,7 @@ send() {
     -d chat_id="${CHAT_ID}" \
     -d parse_mode="HTML" \
     -d disable_notification=true \
-    -d text="🔄 <b>Build al ${pct}%</b> — ⏱️ ${mins}m ${secs}s" > /dev/null
+    -d text="🔄 <b>Build ${pct}%</b> — ⏱️ ${mins}m ${secs}s" > /dev/null
 }
 
 send 0
