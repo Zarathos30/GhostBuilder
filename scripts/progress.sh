@@ -8,13 +8,15 @@ BUILD_START=${2:-$(date +%s)}
 send() {
   local pct=$1
   local elapsed=$(($(date +%s) - BUILD_START))
-  local mins=$((elapsed / 60))
-  local secs=$((elapsed % 60))
+  local remaining=$((ESTIMATED_TOTAL - elapsed))
+  [ "$remaining" -lt 0 ] && remaining=0
+  local mins=$((remaining / 60))
+  local secs=$((remaining % 60))
   curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
     -d chat_id="${CHAT_ID}" \
     -d parse_mode="HTML" \
     -d disable_notification=true \
-    -d text="🔄 <b>Build ${pct}%</b> — ⏱️ ${mins}m ${secs}s" > /dev/null
+    -d text="🔄 <b>Build ${pct}%</b> — ⏱️ ~${mins}m ${secs}s remaining" > /dev/null
 }
 
 send 0
