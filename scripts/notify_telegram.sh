@@ -54,6 +54,7 @@ format_changelog() {
       done
     fi
     desc="$(tr '[:lower:]' '[:upper:]' <<< "${desc:0:1}")${desc:1}"
+    [ -z "$desc" ] && continue
     desc=$(esc "$desc")
 
     case "$type" in
@@ -74,13 +75,10 @@ format_changelog() {
 }
 
 KERNEL_RAW=$(get_raw_log "$KERNEL_DIR" "ghostkernel-last-notified")
-BUILDER_RAW=$(get_raw_log "$BUILDER_DIR" "ghostkernel-builder-last-notified")
 KERNEL_CL=$(format_changelog "$KERNEL_RAW")
-BUILDER_CL=$(format_changelog "$BUILDER_RAW")
 
 CHANGELOG_TEXT=""
-[ -n "$KERNEL_CL" ]  && CHANGELOG_TEXT="${CHANGELOG_TEXT}<b>🧬 Kernel Changes:</b>\n${KERNEL_CL}\n"
-[ -n "$BUILDER_CL" ] && CHANGELOG_TEXT="${CHANGELOG_TEXT}<b>🛠️ Builder Changes:</b>\n${BUILDER_CL}\n"
+[ -n "$KERNEL_CL" ]  && CHANGELOG_TEXT="${CHANGELOG_TEXT}<b>🧬 Kernel Changes:</b>\n${KERNEL_CL}"
 [ -z "$CHANGELOG_TEXT" ] && CHANGELOG_TEXT="No changes since last build.\n"
 
 case "$INPUT_VARIANT" in
@@ -90,17 +88,10 @@ case "$INPUT_VARIANT" in
   *)     VARIANT_LABEL="${INPUT_VARIANT:-unknown}" ;;
 esac
 
-FEAT="✅ HTSR 240Hz Touch\n✅ WiFi Performance Exploits\n✅ KGSL GPU Bypass\n✅ Mobile Data Exploits\n"
-[ "${INPUT_BYPASS:-off}" == "on" ]      && FEAT="${FEAT}✅ Bypass Charging\n"
-[ "${INPUT_NOMOUNT:-off}" == "on" ]     && FEAT="${FEAT}✅ NoMount (VFS)\n"
-[ "${INPUT_DROIDSPACES:-off}" == "on" ] && FEAT="${FEAT}✅ Droidspaces\n"
-[ "${INPUT_DEBUG:-off}" == "on" ]       && FEAT="${FEAT}🐛 Debug Mode\n"
-
 FILE_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
 SHA256_FULL=$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)
 SHA256_SHORT="${SHA256_FULL:0:12}"
 
-RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 BUILD_DATE=$(date -u "+%Y-%m-%d %H:%M UTC")
 
 DUR="${BUILD_DURATION_SEC:-0}"
@@ -127,7 +118,6 @@ fi
 
 MSG_ID=$(echo "$SEND_DOC" | jq -r '.result.message_id')
 
-FEAT="$(printf '%b' "$FEAT" | sed '/^$/d')"
 CHANGELOG_TEXT="$(printf '%b' "$CHANGELOG_TEXT" | sed '/^$/d')"
 
 DETAIL="📋 <b>Build Detail</b>
@@ -138,14 +128,12 @@ DETAIL="📋 <b>Build Detail</b>
 🔢 HZ: ${HZ_ID} Hz
 🔗 LTO: ${LTO_ACTUAL}
 ⚙️ Clang: ${KBUILD_COMPILER_STRING}
-<b>Addons / Features:</b>
-${FEAT}${CHANGELOG_TEXT}<b>Build Info:</b>
+${CHANGELOG_TEXT}<b>Build Info:</b>
 📁 Name: <code>${ZIP_NAME}</code>
 💾 Size: ${FILE_SIZE}
 🔐 SHA256: <code>${SHA256_FULL}</code>
 ⏱️ Duration: ${DUR_TEXT}
-📅 Date: ${BUILD_DATE}
-🏃 Run: <a href=\"${RUN_URL}\">#${GITHUB_RUN_NUMBER}</a>"
+📅 Date: ${BUILD_DATE}"
 
 SEND_DETAIL=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
   -d chat_id="${TELEGRAM_CHAT_ID}" \
