@@ -1,8 +1,6 @@
 name: Telegram Build Trigger
 
 on:
-  schedule:
-    - cron: '*/3 * * * *'
   workflow_dispatch:
 
 jobs:
