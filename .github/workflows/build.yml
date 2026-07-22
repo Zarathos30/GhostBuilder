@@ -242,7 +242,14 @@ jobs:
         run: |
           BUILD_START=$(date +%s)
           bash builder/scripts/progress.sh 2400 "$BUILD_START" &
-          bash builder/scripts/build.sh
+          bash builder/scripts/build.sh 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
+
+      - name: Notify Failure
+        if: failure()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: bash builder/scripts/notify_failure.sh
 
       - name: Save ccache
         if: always()
