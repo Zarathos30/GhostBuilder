@@ -97,13 +97,6 @@ FILE_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
 SHA256_FULL=$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)
 SHA256_SHORT="${SHA256_FULL:0:12}"
 
-KERNEL_COMMIT_SHA=$(cd "$KERNEL_DIR" && git rev-parse HEAD)
-KERNEL_COMMIT_SHORT="${KERNEL_COMMIT_SHA:0:7}"
-KERNEL_COMMIT_URL="https://github.com/Zarathos30/GhostKernel/commit/${KERNEL_COMMIT_SHA}"
-
-BUILDER_COMMIT_SHORT="${GITHUB_SHA:0:7}"
-BUILDER_COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
-
 RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 BUILD_DATE=$(date -u "+%Y-%m-%d %H:%M UTC")
 
@@ -133,26 +126,23 @@ fi
 
 MSG_ID=$(echo "$SEND_DOC" | jq -r '.result.message_id')
 
-DETAIL="📋 <b>Build Detail</b>
+FEAT="$(printf '%b' "$FEAT" | sed '/^$/d')"
+CHANGELOG_TEXT="$(printf '%b' "$CHANGELOG_TEXT" | sed '/^$/d')"
 
+DETAIL="📋 <b>Build Detail</b>
 $(printf '%b' "$FALLBACK_NOTE")<b>Specs:</b>
 📦 Version: <code>${KERNEL_VER}</code>
 🌿 Variant: ${VARIANT_LABEL}
 🔢 HZ: ${HZ_ID} Hz
 🔗 LTO: ${LTO_ACTUAL}
 ⚙️ Clang: ${KBUILD_COMPILER_STRING}
-
 <b>Addons / Features:</b>
-$(printf '%b' "$FEAT")
-$(printf '%b' "$CHANGELOG_TEXT")
-<b>Build Info:</b>
+${FEAT}${CHANGELOG_TEXT}<b>Build Info:</b>
 📁 Name: <code>${ZIP_NAME}</code>
 💾 Size: ${FILE_SIZE}
 🔐 SHA256: <code>${SHA256_FULL}</code>
 ⏱️ Duration: ${DUR_TEXT}
 📅 Date: ${BUILD_DATE}
-🧬 Kernel Commit: <a href=\"${KERNEL_COMMIT_URL}\">${KERNEL_COMMIT_SHORT}</a>
-🛠️ Builder Commit: <a href=\"${BUILDER_COMMIT_URL}\">${BUILDER_COMMIT_SHORT}</a>
 🏃 Run: <a href=\"${RUN_URL}\">#${GITHUB_RUN_NUMBER}</a>"
 
 SEND_DETAIL=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
