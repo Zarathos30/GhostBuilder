@@ -6,10 +6,6 @@ CHAT_ID="${TELEGRAM_CHAT_ID:?TELEGRAM_CHAT_ID not set}"
 
 UPDATES=$(curl -s "https://api.telegram.org/bot${TOKEN}/getUpdates?timeout=5&allowed_updates=message,channel_post")
 
-echo "DEBUG: Telegram response:"
-echo "$UPDATES" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'ok={d.get(\"ok\")}, updates={len(d.get(\"result\",[]))}')" 2>/dev/null || echo "$UPDATES" | head -c 500
-echo "DEBUG: CHAT_ID=${CHAT_ID}"
-
 MATCHES=$(echo "$UPDATES" | python3 -c "
 import json, sys
 chat_id = '$CHAT_ID'
