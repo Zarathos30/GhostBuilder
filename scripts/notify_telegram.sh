@@ -3,7 +3,7 @@ set -e
 
 KERNEL_DIR="${GITHUB_WORKSPACE}/kernel-source"
 BUILDER_DIR="${GITHUB_WORKSPACE}/builder"
-ZIP_PATH="${KERNEL_DIR}/DumpC2J-Release/${ZIP_NAME}"
+ZIP_PATH="${KERNEL_DIR}/GhostKernel-Release/${ZIP_NAME}"
 
 esc() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
@@ -70,8 +70,8 @@ format_changelog() {
   printf '%s' "$out"
 }
 
-KERNEL_RAW=$(get_raw_log "$KERNEL_DIR" "dumpc2j-last-notified")
-BUILDER_RAW=$(get_raw_log "$BUILDER_DIR" "dumpc2j-builder-last-notified")
+KERNEL_RAW=$(get_raw_log "$KERNEL_DIR" "ghostkernel-last-notified")
+BUILDER_RAW=$(get_raw_log "$BUILDER_DIR" "ghostkernel-builder-last-notified")
 KERNEL_CL=$(format_changelog "$KERNEL_RAW")
 BUILDER_CL=$(format_changelog "$BUILDER_RAW")
 
@@ -99,7 +99,7 @@ SHA256_SHORT="${SHA256_FULL:0:12}"
 
 KERNEL_COMMIT_SHA=$(cd "$KERNEL_DIR" && git rev-parse HEAD)
 KERNEL_COMMIT_SHORT="${KERNEL_COMMIT_SHA:0:7}"
-KERNEL_COMMIT_URL="https://github.com/adennnqt/DumpC2J-Kernel/commit/${KERNEL_COMMIT_SHA}"
+KERNEL_COMMIT_URL="https://github.com/Zarathos30/GhostKernel/commit/${KERNEL_COMMIT_SHA}"
 
 BUILDER_COMMIT_SHORT="${GITHUB_SHA:0:7}"
 BUILDER_COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
@@ -112,7 +112,7 @@ DUR_TEXT="$((DUR / 60))m $((DUR % 60))s"
 
 [ "${ROOT_FALLBACK_USED:-false}" == "true" ] && FALLBACK_NOTE="⚠️ <b>Fallback used</b> — latest root method commit failed to build, automatically used last known-good commit.\n\n" || FALLBACK_NOTE=""
 
-CAPTION="🔧 <b>DumpC2J Kernel Build</b>
+CAPTION="🔧 <b>Ghost Kernel Build</b>
 
 📦 <code>${KERNEL_VER}</code> · ${VARIANT_LABEL}
 🔗 LTO: ${LTO_ACTUAL} · ⚙️ ${KBUILD_COMPILER_STRING}
@@ -168,8 +168,8 @@ update_tag() {
 
 if echo "$SEND_DETAIL" | grep -q '"ok":true'; then
   echo "[✓] Telegram notification (file + detail) sent."
-  update_tag "$KERNEL_DIR" "dumpc2j-last-notified"
-  update_tag "$BUILDER_DIR" "dumpc2j-builder-last-notified"
+  update_tag "$KERNEL_DIR" "ghostkernel-last-notified"
+  update_tag "$BUILDER_DIR" "ghostkernel-builder-last-notified"
 else
   echo "[!] File sent, but detail message failed. Trying plain text fallback..."
   echo "$SEND_DETAIL"
@@ -177,6 +177,6 @@ else
     -d chat_id="${TELEGRAM_CHAT_ID}" \
     -d reply_to_message_id="${MSG_ID}" \
     --data-urlencode text="$DETAIL" > /dev/null
-  update_tag "$KERNEL_DIR" "dumpc2j-last-notified"
-  update_tag "$BUILDER_DIR" "dumpc2j-builder-last-notified"
+  update_tag "$KERNEL_DIR" "ghostkernel-last-notified"
+  update_tag "$BUILDER_DIR" "ghostkernel-builder-last-notified"
 fi

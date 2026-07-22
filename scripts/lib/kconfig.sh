@@ -4,7 +4,7 @@ set -e
 mkdir -p "$OUT_DIR"
 
 make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 \
-  KCFLAGS="$KERNEL_KCFLAGS" LDFLAGS="$KERNEL_LDFLAGS" konoha_defconfig
+  KCFLAGS="$KERNEL_KCFLAGS" LDFLAGS="$KERNEL_LDFLAGS" ghost_defconfig
 
 "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
   -d CONFIG_VDSO32 -d CONFIG_COMPAT_VDSO
@@ -111,7 +111,7 @@ make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
 
 # Re-force droidspaces configs: olddefconfig can silently flip these back off
 # if Kconfig dependency resolution disagrees (e.g. CONFIG_USER_NS is not set
-# in konoha_defconfig). Re-apply after olddefconfig so they always stick.
+# in ghost_defconfig). Re-apply after olddefconfig so they always stick.
 if [ "$DROIDSPACES" == "on" ]; then
   "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
     -e CONFIG_SYSVIPC -e CONFIG_POSIX_MQUEUE -e CONFIG_IPC_NS -e CONFIG_PID_NS -e CONFIG_USER_NS \

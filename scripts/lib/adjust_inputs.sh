@@ -20,13 +20,13 @@ cd "$KERNEL_DIR"
 echo "[*] Applying kernel name: $KERNEL_NAME"
 if [ -n "$KERNEL_NAME" ]; then
   sed -i "s/CONFIG_LOCALVERSION=\".*\"/CONFIG_LOCALVERSION=\"$KERNEL_NAME\"/g" \
-    arch/arm64/configs/konoha_defconfig
+    arch/arm64/configs/ghost_defconfig
 fi
 
 if [ "$SPOOF_UNAME" == "on" ]; then
   sed -i "s/# CONFIG_KSU_SUSFS_SPOOF_UNAME is not set/CONFIG_KSU_SUSFS_SPOOF_UNAME=y/g" \
-    arch/arm64/configs/konoha_defconfig
+    arch/arm64/configs/ghost_defconfig
 elif [ "$SPOOF_UNAME" == "off" ]; then
   sed -i "s/CONFIG_KSU_SUSFS_SPOOF_UNAME=y/# CONFIG_KSU_SUSFS_SPOOF_UNAME is not set/g" \
-    arch/arm64/configs/konoha_defconfig
+    arch/arm64/configs/ghost_defconfig
 fi

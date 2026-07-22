@@ -1,4 +1,4 @@
-name: DumpC2J Kernel Builder
+name: Ghost Kernel Builder
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         description: "Custom Kernel Name (LOCALVERSION)"
         required: true
         type: string
-        default: "-anykern3-11-DumpC2J"
+        default: "-anykern3-11-GhostKernel"
       spoof_uname:
         description: "Spoof Uname (SUSFS/Stock Naming)"
         required: true
@@ -128,7 +128,7 @@ jobs:
         run: |
           git clone --depth=50 \
             --branch main \
-            https://${{ secrets.GH_TOKEN }}@github.com/adennnqt/DumpC2J-Kernel \
+            https://${{ secrets.GH_TOKEN }}@github.com/Zarathos30/GhostKernel \
             kernel-source
 
       - name: Parse Inputs
@@ -264,6 +264,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DumpC2J-${{ env.BUILD_NAME }}
-          path: kernel-source/DumpC2J-Release
+          name: GhostKernel-${{ env.BUILD_NAME }}
+          path: kernel-source/GhostKernel-Release
           retention-days: 7
