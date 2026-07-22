@@ -41,13 +41,15 @@ case "$VARIANT" in
     ;;
 esac
 echo "VARIANT_LABEL=$BUILD_LABEL" >> "$GITHUB_ENV"
+BUILD_VER=$(echo "$KERNEL_NAME" | grep -oP '\d+\.\d+\.\d+' | head -1)
+[ -z "$BUILD_VER" ] && BUILD_VER=$KERNEL_VER
 
 if [ "$VARIANT" == "stock" ]; then
   BUILD_TAG="vanilla"
 else
   BUILD_TAG="${ROOT}-${VARIANT}"
 fi
-ZIP_NAME="GhostKernel-${BUILD_TAG}-${KERNEL_VER}-${HZ}-${TIME}.zip"
+ZIP_NAME="GhostKernel-${BUILD_VER}-${BUILD_TAG}-${KERNEL_VER}-${HZ}-${TIME}.zip"
 cd "$TEMP_DIR" && zip -r9 "${GITHUB_WORKSPACE}/$ZIP_NAME" . \
   -x '.git*' -x 'README.md' -x '*placeholder' > /dev/null
 cd "$GITHUB_WORKSPACE"
