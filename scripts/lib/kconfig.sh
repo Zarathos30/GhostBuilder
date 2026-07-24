@@ -22,6 +22,9 @@ if [ "$ROOT" == "resukisu" ] && [ "$VARIANT" != "stock" ]; then
   "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" -e CONFIG_KSU_MULTI_MANAGER_SUPPORT
 fi
 
+"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+  -e CONFIG_KALLSYMS -e CONFIG_KALLSYMS_ALL
+
 if [ "$ROOT" == "sukisu" ]; then
   "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" -e CONFIG_KPM
 else
@@ -132,3 +135,12 @@ fi
   -e CONFIG_ZRAM_MULTI_COMP -e CONFIG_ZRAM_DEF_COMP_LZ4KD \
   --set-str CONFIG_ZRAM_DEF_COMP "lz4kd"
 echo "[+] LZ4KD configs re-forced after olddefconfig"
+
+"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+  -e CONFIG_KALLSYMS -e CONFIG_KALLSYMS_ALL
+make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
+if ! grep -q "^CONFIG_KALLSYMS_ALL=y" "$OUT_DIR/.config"; then
+  echo "[-] ERROR: CONFIG_KALLSYMS_ALL failed to stick after olddefconfig"
+  return 1
+fi
+echo "[+] CONFIG_KALLSYMS_ALL confirmed on"
