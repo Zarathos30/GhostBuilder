@@ -109,15 +109,6 @@ CMDLINE_APPEND="${CMDLINE_APPEND# }"
 
 make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
 
-# Re-force LZ4KD: olddefconfig can silently drop this if Kconfig dependency
-# resolution disagrees, same class of issue as droidspaces below.
-"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
-  -e CONFIG_CRYPTO_LZ4K -e CONFIG_CRYPTO_LZ4KD \
-  -e CONFIG_LZ4KD_COMPRESS -e CONFIG_LZ4KD_DECOMPRESS \
-  -e CONFIG_ZRAM_MULTI_COMP -e CONFIG_ZRAM_DEF_COMP_LZ4KD \
-  --set-str CONFIG_ZRAM_DEF_COMP "lz4kd"
-echo "[+] LZ4KD configs re-forced after olddefconfig"
-
 make -C "$KERNEL_DIR" O="$OUT_DIR" CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
 
 # Re-force droidspaces configs: olddefconfig can silently flip these back off
@@ -135,3 +126,9 @@ if [ "$DROIDSPACES" == "on" ]; then
     -e CONFIG_TMPFS_POSIX_ACL -e CONFIG_TMPFS_XATTR
   echo "[+] Droidspaces configs re-forced after olddefconfig"
 fi
+"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+  -e CONFIG_CRYPTO_LZ4K -e CONFIG_CRYPTO_LZ4KD \
+  -e CONFIG_LZ4KD_COMPRESS -e CONFIG_LZ4KD_DECOMPRESS \
+  -e CONFIG_ZRAM_MULTI_COMP -e CONFIG_ZRAM_DEF_COMP_LZ4KD \
+  --set-str CONFIG_ZRAM_DEF_COMP "lz4kd"
+echo "[+] LZ4KD configs re-forced after olddefconfig"
