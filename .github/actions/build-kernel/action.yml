@@ -48,6 +48,10 @@ inputs:
     description: "Spoof Uname (SUSFS/Stock Naming)"
     required: false
     default: "false"
+  kasumi:
+    description: "Kasumi (path hiding/spoofing LKM, manual insmod required)"
+    required: false
+    default: "false"
   run_mode:
     description: "Run Mode (Release=pinned only, Test=check upstream)"
     required: false
@@ -125,6 +129,7 @@ runs:
         IN_DEBUG: ${{ inputs.debug }}
         IN_NOMOUNT: ${{ inputs.nomount }}
         IN_SPOOF: ${{ inputs.spoof_uname }}
+        IN_KASUMI: ${{ inputs.kasumi }}
         IN_KERNEL_NAME: ${{ inputs.kernel_name }}
       run: |
         onoff() { [ "$1" = "true" ] && echo on || echo off; }
@@ -137,6 +142,7 @@ runs:
         INPUT_DROIDSPACES="$(onoff "$IN_DROIDSPACES")"
         INPUT_DEBUG="$(onoff "$IN_DEBUG")"
         INPUT_NOMOUNT="$(onoff "$IN_NOMOUNT")"
+        INPUT_KASUMI="$(onoff "$IN_KASUMI")"
 
         if [ "$IN_HZ" == "powersave" ]; then HZ_ID=100
         elif [ "$IN_HZ" == "balance" ]; then HZ_ID=250
@@ -177,6 +183,7 @@ runs:
         echo "INPUT_DROIDSPACES=$INPUT_DROIDSPACES" >> $GITHUB_ENV
         echo "INPUT_DEBUG=$INPUT_DEBUG" >> $GITHUB_ENV
         echo "INPUT_NOMOUNT=$INPUT_NOMOUNT" >> $GITHUB_ENV
+        echo "INPUT_KASUMI=$INPUT_KASUMI" >> $GITHUB_ENV
         echo "INPUT_KERNEL_NAME=$IN_KERNEL_NAME" >> $GITHUB_ENV
         echo "INPUT_VARIANT=$IN_VARIANT" >> $GITHUB_ENV
         echo "INPUT_ROOT=$IN_ROOT" >> $GITHUB_ENV

@@ -89,6 +89,11 @@ on:
         required: true
         type: boolean
         default: false
+      kasumi:
+        description: "Kasumi (path hiding/spoofing LKM, manual insmod required)"
+        required: true
+        type: boolean
+        default: false
       run_mode:
         description: "Run Mode (Release=pinned only, Test=check upstream)"
         required: true
@@ -129,6 +134,7 @@ jobs:
           droidspaces: ${{ inputs.droidspaces }}
           debug: ${{ inputs.debug }}
           nomount: ${{ inputs.nomount }}
+          kasumi: ${{ inputs.kasumi }}
           run_mode: ${{ inputs.run_mode }}
           kernel_version_spoof: ${{ inputs.kernel_version_spoof }}
           kernel_clone_token: ${{ secrets.GH_TOKEN }}
