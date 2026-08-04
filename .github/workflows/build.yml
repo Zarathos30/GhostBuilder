@@ -51,9 +51,7 @@ on:
         options:
           - none
           - ksu-next
-          - kowsu
           - sukisu
-          - resukisu
         default: sukisu
       lto:
         description: "LTO Mode"
@@ -89,6 +87,11 @@ on:
         required: true
         type: boolean
         default: false
+      kasumi:
+        description: "Kasumi (path hiding/spoofing LKM, manual insmod required)"
+        required: true
+        type: boolean
+        default: false
       run_mode:
         description: "Run Mode (Release=pinned only, Test=check upstream)"
         required: true
@@ -111,9 +114,6 @@ jobs:
     steps:
       - name: Validate Input Combination
         run: |
-          if [ "${{ inputs.variant }}" == "root" ] && [ "${{ inputs.root }}" == "resukisu" ]; then
-            echo "::warning::ReSukiSU root-only was previously blocked due to a manager-open crash — retesting after execveat_init fix (commit 7667f76)."
-          fi
           echo "[+] Input combination valid: variant=${{ inputs.variant }}, root=${{ inputs.root }}"
 
       - name: Checkout Builder
@@ -124,7 +124,7 @@ jobs:
 
       - name: Clone Kernel Source
         run: |
-          git clone --depth=50 \
+          git clone --depth=50 --filter=blob:none \
             --branch main \
             https://${{ secrets.GH_TOKEN }}@github.com/Zarathos30/GhostKernel \
             kernel-source
@@ -195,6 +195,18 @@ jobs:
             rsync schedtool squashfs-tools xsltproc zip zlib1g-dev \
             python3 clang lld llvm jq
 
+      - name: Get Cache Week
+        id: cacheweek
+        if: inputs.clang_variant != 'neutron'
+        run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Clang Toolchain
+        if: inputs.clang_variant != 'neutron'
+        uses: actions/cache@v4
+        with:
+          path: ~/toolchains/${{ inputs.clang_variant }}-clang
+          key: clang-${{ inputs.clang_variant }}-${{ steps.cacheweek.outputs.week }}
+
       - name: Setup Clang
         run: |
           bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }}
@@ -216,8 +228,16 @@ jobs:
         env:
           ACTUAL_ROOT: ${{ env.ACTUAL_ROOT }}
           CLANG_VARIANT: ${{ inputs.clang_variant }}
+          LTO: ${{ inputs.lto }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: bash builder/scripts/lib/ccache_setup.sh
+
+      - name: Cache LTO Linker Cache
+        if: inputs.lto == 'thin'
+        uses: actions/cache@v4
+        with:
+          path: /dev/shm/ldcache
+          key: ldcache-${{ inputs.clang_variant }}-${{ inputs.lto }}
 
       - name: Build Kernel
         env:
@@ -236,6 +256,7 @@ jobs:
           INPUT_SPOOF_UNAME: "on"
           INPUT_VERSION_SPOOF: ${{ inputs.kernel_version_spoof }}
           INPUT_NOMOUNT: ${{ inputs.nomount && 'on' || 'off' }}
+          INPUT_KASUMI: ${{ inputs.kasumi && 'on' || 'off' }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
