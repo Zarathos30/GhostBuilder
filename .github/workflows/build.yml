@@ -7,7 +7,7 @@ on:
         description: "Custom Kernel Name (LOCALVERSION)"
         required: true
         type: string
-        default: "-GhostKernel-1.9.2"
+        default: "-GhostKernel-1.9.3"
       spoof_uname:
         description: "Spoof Uname (SUSFS/Stock Naming)"
         required: true
