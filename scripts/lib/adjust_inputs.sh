@@ -15,7 +15,6 @@ if [ -n "$KERNEL_NAME" ]; then
   KERNEL_NAME_ESCAPED=$(printf '%s' "$KERNEL_NAME" | sed -e 's/[\/&]/\\&/g')
   sed -i "s/CONFIG_LOCALVERSION=\".*\"/CONFIG_LOCALVERSION=\"$KERNEL_NAME_ESCAPED\"/g" \
     arch/arm64/configs/ghost_defconfig
->>>>>>> 52a8792 (Adapt for GhostKernel: rename references, defconfig, branding)
 fi
 
 if [ "$SPOOF_UNAME" == "on" ]; then

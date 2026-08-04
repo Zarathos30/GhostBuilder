@@ -17,7 +17,7 @@ mkdir -p "$CCACHE_DIR"
 
 CCACHE_ASSET="ccache-${CLANG_VARIANT}-lto-${LTO:-full}.tar.zst"
 CCACHE_TAG="ccache-store"
-CCACHE_REPO="Zarathos30/DumpC2J-Builder"
+CCACHE_REPO="Zarathos30/GhostBuilder"
 
 echo "[+] ccache asset target: ${CCACHE_ASSET}"
 
