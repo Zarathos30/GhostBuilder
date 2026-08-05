@@ -2,7 +2,7 @@
 set -e
 
 if [ "${KASUMI:-off}" != "on" ]; then
-  exit 0
+  return 0
 fi
 
 KASUMI_SRC_DIR="${GITHUB_WORKSPACE}/kasumi"
