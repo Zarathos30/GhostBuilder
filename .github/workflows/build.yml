@@ -129,6 +129,12 @@ jobs:
             https://${{ secrets.GH_TOKEN }}@github.com/Zarathos30/GhostKernel \
             kernel-source
 
+      - name: Init Build Log
+        run: |
+          echo "GhostKernel Build Log" > "${GITHUB_WORKSPACE}/build.log"
+          echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "${GITHUB_WORKSPACE}/build.log"
+          echo "========================================" >> "${GITHUB_WORKSPACE}/build.log"
+
       - name: Parse Inputs
         id: setup_vars
         env:
@@ -209,20 +215,26 @@ jobs:
 
       - name: Setup Clang
         run: |
-          bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }}
+          set -o pipefail
+          bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }} 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
       - name: Setup AnyKernel3
         run: |
-          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
-          cp kernel-source/anykernel/anykernel.sh anykernel/anykernel.sh
-          cp -r kernel-source/anykernel/tools/* anykernel/tools/
+          set -o pipefail
+          {
+            git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
+            cp kernel-source/anykernel/anykernel.sh anykernel/anykernel.sh
+            cp -r kernel-source/anykernel/tools/* anykernel/tools/
+          } 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
       - name: Scout Checkpoint
         env:
           ROOT: ${{ env.ACTUAL_ROOT }}
           VARIANT: ${{ inputs.variant }}
           RUN_MODE: ${{ inputs.run_mode }}
-        run: bash builder/scripts/scout.sh
+        run: |
+          set -o pipefail
+          bash builder/scripts/scout.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
       - name: Setup ccache
         env:
@@ -230,7 +242,9 @@ jobs:
           CLANG_VARIANT: ${{ inputs.clang_variant }}
           LTO: ${{ inputs.lto }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: bash builder/scripts/lib/ccache_setup.sh
+        run: |
+          set -o pipefail
+          bash builder/scripts/lib/ccache_setup.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
       - name: Cache LTO Linker Cache
         if: inputs.lto == 'thin'
