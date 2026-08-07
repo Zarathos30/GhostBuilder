@@ -15,7 +15,7 @@ latest_sha_or_empty() {
     local body_file http_code curl_exit sha
 
     body_file="$(mktemp)"
-    if http_code=$(curl -sL -o "$body_file" -w '%{http_code}' --max-time 20 "$url"); then
+    if http_code=$(curl -sL -o "$body_file" -w '%{http_code}' --max-time 20 -H "Authorization: Bearer ${GH_TOKEN:-}" "$url"); then
         curl_exit=0
     else
         curl_exit=$?
@@ -45,14 +45,14 @@ ref_exists() {
             repo_base="${url_template%/commits/*}"
             branch="${url_template##*/commits/}"
             compare_url="${repo_base}/compare/${branch}...${sha}"
-            status=$(curl -sL --max-time 15 "$compare_url" 2>/dev/null | jq -r '.status // empty')
+            status=$(curl -sL --max-time 15 -H "Authorization: Bearer ${GH_TOKEN:-}" "$compare_url" 2>/dev/null | jq -r '.status // empty')
             if [ "$status" = "identical" ] || [ "$status" = "behind" ]; then
                 return 0
             fi
             # Storia riscritta upstream (diverged): pin ancora valido se il commit esiste ancora
             if [ "$status" = "diverged" ]; then
                 check_url="${repo_base}/commits/${sha}"
-                http_code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 "$check_url" 2>/dev/null) || return 1
+                http_code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 -H "Authorization: Bearer ${GH_TOKEN:-}" "$check_url" 2>/dev/null) || return 1
                 [ "$http_code" = "200" ]
             else
                 return 1
