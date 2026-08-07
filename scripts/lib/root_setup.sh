@@ -2,18 +2,18 @@
 set -e
 
 case "$ROOT" in
-  sukisu)   ROOT_REPO="https://github.com/sukisu-ultra/sukisu-ultra.git"; REPO_NAME="sukisu-ultra"
+  sukisu)   ROOT_REPO="https://github.com/Zarathos30/SukiSU-Ultra.git"; REPO_NAME="SukiSU-Ultra"
             if [ "$VARIANT" == "susfs" ]; then BRANCH="builtin"; PIN_KEY="sukisu_susfs"; PIN_PREFIX="SUKISU_SUSFS"
             else BRANCH="main"; PIN_KEY="sukisu_root"; PIN_PREFIX="SUKISU_ROOT"; fi ;;
-  resukisu) ROOT_REPO="https://github.com/ReSukiSU/ReSukiSU.git"; REPO_NAME="ReSukiSU"; BRANCH="main"
+  resukisu) ROOT_REPO="https://github.com/Zarathos30/ReSukiSU.git"; REPO_NAME="ReSukiSU"; BRANCH="main"
             if [ "$VARIANT" == "susfs" ]; then PIN_KEY="resukisu_susfs"; PIN_PREFIX="RESUKISU_SUSFS"
             else PIN_KEY="resukisu_root"; PIN_PREFIX="RESUKISU_ROOT"; fi ;;
   ksu-next)
     if [ "$VARIANT" == "susfs" ]; then
-      ROOT_REPO="https://github.com/pershoot/KernelSU-Next.git"; REPO_NAME="KernelSU-Next"; BRANCH="dev-susfs"
+      ROOT_REPO="https://github.com/Zarathos30/KernelSU-Next.git"; REPO_NAME="KernelSU-Next"; BRANCH="dev-susfs"
       PIN_KEY="ksunext_susfs"; PIN_PREFIX="KSUNEXT_SUSFS"
     else
-      ROOT_REPO="https://github.com/KernelSU-Next/KernelSU-Next.git"; REPO_NAME="KernelSU-Next"; BRANCH="dev"
+      ROOT_REPO="https://github.com/Zarathos30/KernelSU-Next-Dev.git"; REPO_NAME="KernelSU-Next"; BRANCH="dev"
       PIN_KEY="ksunext_root"; PIN_PREFIX="KSUNEXT_ROOT"
     fi ;;
   *)        REPO_NAME="none" ;;
@@ -63,7 +63,7 @@ else
   cd "$GITHUB_WORKSPACE"
 
   if [ "$VARIANT" == "susfs" ]; then
-    SUSFS_REPO_URL="https://gitlab.com/simonpunk/susfs4ksu.git"
+    SUSFS_REPO_URL="https://github.com/Zarathos30/susfs4ksu.git"
     SUSFS_SKIP_VAR="SKIP_SUSFS4KSU"
     SUSFS_REF_VAR="SUSFS4KSU_REF"
 
