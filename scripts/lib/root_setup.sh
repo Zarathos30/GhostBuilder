@@ -52,7 +52,11 @@ else
   fi
 
   echo "[+] Checkout ${PIN_KEY} @ ${RESOLVED_SHA:0:8} (dari scout.sh)"
-  (cd "$MODULES_DIR/$REPO_NAME" && git checkout -B "$BRANCH" --quiet "$RESOLVED_SHA")
+  if ! (cd "$MODULES_DIR/$REPO_NAME" && git checkout -B "$BRANCH" --quiet "$RESOLVED_SHA" 2>/dev/null); then
+    echo "[-] SHA not in branch history — fetching pinned SHA directly..."
+    (cd "$MODULES_DIR/$REPO_NAME" && timeout 60 git fetch origin "$RESOLVED_SHA") || { echo "[-] Pinned SHA fetch failed/timed out"; return 1; }
+    (cd "$MODULES_DIR/$REPO_NAME" && git checkout -B "$BRANCH" --quiet "$RESOLVED_SHA")
+  fi
 
   echo "MANAGER_ROOT_NAME=${ROOT}" >> "$GITHUB_ENV"
   echo "MANAGER_REPO_DIR=${MODULES_DIR}/${REPO_NAME}" >> "$GITHUB_ENV"
