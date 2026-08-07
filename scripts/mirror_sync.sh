@@ -17,8 +17,46 @@ COMPONENTS=(
   "susfs4ksu|https://gitlab.com/simonpunk/susfs4ksu.git|gki-android15-6.6-dev"
 )
 
+# Map manifest key -> mirror repo name
+KEY_TO_REPO=(
+  "ksunext_susfs:KernelSU-Next"
+  "ksunext_root:KernelSU-Next-Dev"
+  "sukisu_root:SukiSU-Ultra"
+  "sukisu_susfs:SukiSU-Ultra"
+  "resukisu_root:ReSukiSU"
+  "resukisu_susfs:ReSukiSU"
+  "susfs4ksu:susfs4ksu"
+)
+
+MANIFEST="${GITHUB_WORKSPACE}/builder/scripts/checkpoint/manifest.json"
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+
+seed_pins() {
+  local name="$1" upstream="$2"
+  local repo="${name}" mirror="${MIRROR_BASE}/${name}.git"
+  local key="" pins=() pin
+
+  for map in "${KEY_TO_REPO[@]}"; do
+    local k="${map%%:*}" r="${map##*:}"
+    [ "$r" = "$name" ] && key="$k"
+  done
+  [ -n "$key" ] || return 0
+
+  pins=()
+  [ -f "$MANIFEST" ] || return 0
+  while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.good, .${key}.history[]?" "$MANIFEST" 2>/dev/null | sort -u)
+
+  for pin in "${pins[@]}"; do
+    [ -n "$pin" ] && [ "$pin" != "null" ] || continue
+    echo "[*] seeding ${key} pin ${pin:0:12} on ${name}..."
+    (cd "$WORK/$name.git" && timeout 60 git fetch --quiet "$upstream" "$pin" 2>/dev/null) || { echo "[!] pin ${pin:0:12} not fetchable from upstream — skip"; continue; }
+    git -C "$WORK/$name.git" push "$mirror" "FETCH_HEAD:refs/keep/pin-$key-$pin" > /dev/null 2>&1 \
+      && echo "    saved refs/keep/pin-$key-${pin:0:12}" \
+      || echo "[!] backup push failed for ${pin:0:12}"
+  done
+}
 
 for entry in "${COMPONENTS[@]}"; do
   IFS='|' read -r name upstream branches <<< "$entry"
@@ -27,6 +65,10 @@ for entry in "${COMPONENTS[@]}"; do
   echo "=== ${name} ==="
   git clone --mirror "$upstream" "$WORK/$name.git" || { echo "[!] clone failed for ${name}"; continue; }
   cd "$WORK/$name.git"
+
+  # Freeze every pinned SHA into refs/keep/* before touching branches,
+  # so pins survive even if upstream already force-pushed them away.
+  seed_pins "$name" "$upstream"
 
   for branch in $branches; do
     new_sha="$(git rev-parse --verify "refs/heads/$branch" 2>/dev/null || true)"
