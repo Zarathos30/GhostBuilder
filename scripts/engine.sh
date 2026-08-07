@@ -57,7 +57,7 @@ if [ "$BUILD_OUTCOME" = "success" ]; then
     REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
     log "engine: promoting ${KEY} pin to ${ref:0:12}"
     apply_and_push \
-      ".${KEY}.good = \"${ref}\" | .${KEY}.bad -= [\"${ref}\"]" \
+      ".${KEY}.history = (([.${KEY}.good] + (.${KEY}.history // [])) | reduce .[] as \$p ([]; if index(\$p) then . else . + [\$p] end) | .[0:4]) | .${KEY}.good = \"${ref}\" | .${KEY}.bad -= [\"${ref}\"]" \
       "chore: bump ${KEY} pin to ${ref:0:12} (verified via run ${GITHUB_RUN_ID})"
 else
     warn "engine: build failed for ${KEY} at ${STAGE} — NOT auto-blacklisting (manual-only design)."

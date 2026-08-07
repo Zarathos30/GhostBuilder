@@ -63,6 +63,14 @@ inputs:
     description: "Telegram chat id (for build progress updates)"
     required: false
     default: ""
+  run_inputs_json:
+    description: "Workflow inputs as JSON (for auto-dispatch of Test runs)"
+    required: false
+    default: ""
+  gh_token:
+    description: "GitHub token used for scout API calls and manifest pushes"
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -244,7 +252,10 @@ runs:
         ROOT: ${{ env.ACTUAL_ROOT }}
         VARIANT: ${{ inputs.variant }}
         RUN_MODE: ${{ inputs.run_mode }}
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ inputs.gh_token }}
+        RUN_INPUTS_JSON: ${{ inputs.run_inputs_json }}
+        TELEGRAM_TOKEN: ${{ inputs.telegram_token }}
+        TELEGRAM_CHAT_ID: ${{ inputs.telegram_chat_id }}
       run: |
         set -o pipefail
         bash builder/scripts/scout.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
@@ -275,7 +286,7 @@ runs:
         INPUT_ROOT: ${{ env.ACTUAL_ROOT }}
         INPUT_LTO: ${{ inputs.lto }}
         INPUT_VERSION_SPOOF: ${{ inputs.kernel_version_spoof }}
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ inputs.gh_token }}
         TELEGRAM_TOKEN: ${{ inputs.telegram_token }}
         TELEGRAM_CHAT_ID: ${{ inputs.telegram_chat_id }}
       run: |

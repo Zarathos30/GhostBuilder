@@ -88,26 +88,77 @@ log_commits_since() {
     esac
 }
 
+dispatch_test_run() {
+    local prefix="$1"
+    [ -n "${GH_TOKEN:-}" ] || { warn "scout: GH_TOKEN not set — cannot auto-dispatch Test run"; return 1; }
+    [ -n "${RUN_INPUTS_JSON:-}" ] || { warn "scout: RUN_INPUTS_JSON not set — cannot auto-dispatch Test run"; return 1; }
+
+    local inputs payload
+    inputs=$(echo "$RUN_INPUTS_JSON" | jq '.run_mode = "Test"')
+    payload=$(jq -n --argjson inputs "$inputs" '{ref:"main", inputs:$inputs}')
+
+    log "scout: all pins dead — auto-dispatching Test run (run_mode=Test)..."
+    curl -s -o /dev/null -w "dispatch HTTP %{http_code}\n" \
+        -X POST "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
+        -H "Authorization: Bearer ${GH_TOKEN}" \
+        -H "Accept: application/vnd.github+json" \
+        -H "User-Agent: GhostBot/1.0" \
+        -d "$payload" || warn "scout: dispatch failed"
+
+    if [ -n "${TELEGRAM_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="HTML" \
+            -d "text=⚠️ <b>All pins for ${prefix} died upstream (force-push).</b> Dispatched an automatic <b>Test</b> run to re-pin. Run Release again after it finishes." > /dev/null || true
+    fi
+}
+
 resolve_component() {
     local key="$1" prefix="$2" latest="$3" url_template="$4"
     local good bad_list is_bad ref candidate manual
+    local pins=() pin valid=""
 
     good=$(jq -r ".${key}.good" "$MANIFEST")
     bad_list=$(jq -c ".${key}.bad" "$MANIFEST")
     manual=$(jq -r ".${key}.manual // false" "$MANIFEST")
 
-    if [ -n "$good" ] && [ "$good" != "null" ] && [ -n "$url_template" ]; then
-        if ! ref_exists "$url_template" "$good"; then
-            warn "${prefix}: pinned good ${good:0:12} no longer in remote (force-push/rewrite upstream?) — treat as unpinned"
-            good=""
+    [ -n "$good" ] && [ "$good" != "null" ] && pins+=("$good")
+    while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.history[]?" "$MANIFEST")
+
+    for pin in "${pins[@]}"; do
+        if [ -z "$url_template" ] || ref_exists "$url_template" "$pin"; then
+            valid="$pin"; break
         fi
+        warn "${prefix}: pin ${pin:0:12} no longer in remote (force-push/rewrite upstream?) — trying next history pin"
+    done
+
+    if [ -z "$valid" ]; then
+        good=""
+        warn "${prefix}: all pins (good + history) no longer in remote"
+    else
+        if [ "$valid" != "$good" ]; then
+            warn "${prefix}: pinned good ${good:0:12} died — falling back to history pin ${valid:0:12}"
+            echo "${prefix}_FALLBACK=${valid}" >> "$GITHUB_ENV"
+        fi
+        good="$valid"
     fi
 
     if [ "$manual" = "true" ]; then
         [ -n "$good" ] || error "scout: ${key} is manual-pinned but has no good pin."
         ref="$good"; candidate="false"
         log "${prefix}: manual-pinned ${ref:0:12} (bump deliberately, coordinates with kernel hooks)"
-    elif [ -n "$latest" ] && [ "$latest" != "null" ]; then
+    elif [ "${RUN_MODE^^}" = "RELEASE" ]; then
+        if [ -n "$good" ]; then
+            ref="$good"; candidate="false"
+            log "${prefix}: Release mode — pinned ${ref:0:12}"
+        else
+            dispatch_test_run "$prefix" || warn "scout: auto-dispatch Test run failed — run Test manually."
+            error "scout: RUN_MODE=Release but all pins for ${key} died (upstream force-push) — automatic Test run dispatched, run again after it finishes."
+        fi
+    elif [ -z "$latest" ] || [ "$latest" = "null" ]; then
+        ref="$good"; candidate="false"
+        log "${prefix}: no candidate — using pinned ${good:-none}"
+    else
         is_bad=$(echo "$bad_list" | jq --arg sha "$latest" 'any(. == $sha)')
         if [ "$is_bad" = "true" ]; then
             if [ -n "$good" ]; then
@@ -128,11 +179,6 @@ resolve_component() {
                 log_commits_since "$prefix" "$good" "$latest" "$url_template"
             fi
         fi
-    elif [ -n "$good" ]; then
-        ref="$good"; candidate="false"
-        log "${prefix}: no latest resolvable — using pinned ${good:0:12}"
-    else
-        error "scout: no resolvable ref for ${key} (no latest, no pin)"
     fi
 
     echo "${prefix}_REF=${ref}" >> "$GITHUB_ENV"

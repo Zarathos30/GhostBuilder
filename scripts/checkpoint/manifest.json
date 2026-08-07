@@ -1,10 +1,12 @@
 {
   "sukisu_root": {
     "good": "9fbe8fe8ca90c62c259c5894bf96d02ac31209b9",
+    "history": [],
     "bad": []
   },
   "sukisu_susfs": {
     "good": "b20dee702035af09cb2ecb5f35443bbc1747f3e6",
+    "history": [],
     "bad": [
       "70fa0e092a2c81060823f8ae526eac14fdda2930"
     ],
@@ -12,6 +14,7 @@
   },
   "bakasu_susfs": {
     "good": "d5e9e025b8b49155f8014684d64c91742b465f65",
+    "history": [],
     "bad": [
       "052ca27775cc9c8570e3b1ba3db7c29486d6020e",
       "48fa4bb7ec8bddb8ea932a8c9be0877f89a1fa73"
@@ -19,19 +22,23 @@
   },
   "ksunext_root": {
     "good": "917df670d7259362d4537735a9b6d110d133c049",
+    "history": [],
     "bad": []
   },
   "ksunext_susfs": {
     "good": "d21e0a66c887ae4bc75b7c9f83e41761819ec09a",
+    "history": [],
     "bad": []
   },
   "susfs4ksu": {
     "good": "d4ea3dd764b3a9a5e0a93de53025b8952b8fe923",
+    "history": [],
     "manual": true,
     "bad": []
   },
   "bakasu_root": {
     "good": "052ca27775cc9c8570e3b1ba3db7c29486d6020e",
+    "history": [],
     "bad": []
   }
 }
