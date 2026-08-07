@@ -46,7 +46,17 @@ ref_exists() {
             branch="${url_template##*/commits/}"
             compare_url="${repo_base}/compare/${branch}...${sha}"
             status=$(curl -sL --max-time 15 "${CURL_AUTH[@]}" "$compare_url" 2>/dev/null | jq -r '.status // empty')
-            [ "$status" = "identical" ] || [ "$status" = "behind" ]
+            if [ "$status" = "identical" ] || [ "$status" = "behind" ]; then
+                return 0
+            fi
+            # Upstream history rewritten (diverged): pin still valid if the commit still exists
+            if [ "$status" = "diverged" ]; then
+                check_url="${repo_base}/commits/${sha}"
+                http_code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 "${CURL_AUTH[@]}" "$check_url" 2>/dev/null) || return 1
+                [ "$http_code" = "200" ]
+            else
+                return 1
+            fi
             ;;
         *)
             local check_url http_code
