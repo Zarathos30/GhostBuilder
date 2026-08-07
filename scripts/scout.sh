@@ -67,24 +67,68 @@ ref_exists() {
     esac
 }
 
+dispatch_test_run() {
+    local prefix="$1"
+    [ -n "${GH_TOKEN:-}" ] || { warn "scout: GH_TOKEN not set — cannot auto-dispatch Test run"; return 1; }
+    [ -n "${RUN_INPUTS_JSON:-}" ] || { warn "scout: RUN_INPUTS_JSON not set — cannot auto-dispatch Test run"; return 1; }
+
+    local inputs payload
+    inputs=$(echo "$RUN_INPUTS_JSON" | jq '.run_mode = "Test"')
+    payload=$(jq -n --argjson inputs "$inputs" '{ref:"main", inputs:$inputs}')
+
+    log "scout: semua pin mati — dispatching Test run otomatis (run_mode=Test)..."
+    curl -s -o /dev/null -w "dispatch HTTP %{http_code}\n" \
+        -X POST "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
+        -H "Authorization: Bearer ${GH_TOKEN}" \
+        -H "Accept: application/vnd.github+json" \
+        -H "User-Agent: GhostBot/1.0" \
+        -d "$payload" || warn "scout: dispatch failed"
+
+    if [ -n "${TELEGRAM_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="HTML" \
+            -d "text=⚠️ <b>All pins for ${prefix} died upstream (force-push).</b> Dispatched an automatic <b>Test</b> run to re-pin. Run Release again after it finishes." > /dev/null || true
+    fi
+}
+
 resolve_component() {
     local key="$1" prefix="$2" latest="$3" url_template="$4"
     local good bad_list is_bad ref candidate
+    local pins=() pin valid=""
 
     good=$(jq -r ".${key}.good" "$MANIFEST")
     bad_list=$(jq -c ".${key}.bad" "$MANIFEST")
 
-    if [ -n "$good" ] && [ "$good" != "null" ] && [ -n "$url_template" ]; then
-        if ! ref_exists "$url_template" "$good"; then
-            warn "${prefix}: pinned good ${good:0:12} udah gak ada di remote (force-push/rewrite upstream?) — treat sbg belum-ada-pin"
-            good=""
+    [ -n "$good" ] && [ "$good" != "null" ] && pins+=("$good")
+    while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.history[]?" "$MANIFEST")
+
+    for pin in "${pins[@]}"; do
+        if [ -z "$url_template" ] || ref_exists "$url_template" "$pin"; then
+            valid="$pin"; break
         fi
+        warn "${prefix}: pin ${pin:0:12} udah gak ada di remote (force-push/rewrite upstream?) — coba pin history berikutnya"
+    done
+
+    if [ -z "$valid" ]; then
+        good=""
+        warn "${prefix}: semua pin (good + history) udah gak ada di remote"
+    else
+        if [ "$valid" != "$good" ]; then
+            warn "${prefix}: pinned good ${good:0:12} mati — fallback ke pin history ${valid:0:12}"
+            echo "${prefix}_FALLBACK=${valid}" >> "$GITHUB_ENV"
+        fi
+        good="$valid"
     fi
 
     if [ "${RUN_MODE^^}" = "RELEASE" ]; then
-        [ -n "$good" ] || error "scout: RUN_MODE=Release tapi belum ada pin ${key} yang valid — run Test dulu."
-        ref="$good"; candidate="false"
-        log "${prefix}: Release mode — pinned ${ref:0:12}"
+        if [ -n "$good" ]; then
+            ref="$good"; candidate="false"
+            log "${prefix}: Release mode — pinned ${ref:0:12}"
+        else
+            dispatch_test_run "$prefix" || warn "scout: auto-dispatch Test run gagal — jalankan run Test manual."
+            error "scout: RUN_MODE=Release tapi semua pin ${key} mati (force-push upstream) — Test run otomatis diluncurkan, jalankan lagi setelah selesai."
+        fi
     elif [ -z "$latest" ]; then
         ref="$good"; candidate="false"
         log "${prefix}: no candidate — pakai pinned ${good:-none}"

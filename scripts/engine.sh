@@ -58,7 +58,7 @@ apply_and_push() {
 if [ "$BUILD_OUTCOME" = "success" ]; then
     log "engine: promoting ${KEY} pin ke ${ref:0:12}"
     apply_and_push \
-      ".${KEY}.good = \"${ref}\" | .${KEY}.bad -= [\"${ref}\"]" \
+      ".${KEY}.history = (([.${KEY}.good] + (.${KEY}.history // [])) | reduce .[] as \$p ([]; if index(\$p) then . else . + [\$p] end) | .[0:4]) | .${KEY}.good = \"${ref}\" | .${KEY}.bad -= [\"${ref}\"]" \
       "chore: bump ${KEY} pin to ${ref:0:12} (verified via run ${GITHUB_RUN_ID})"
 else
     warn "engine: blacklisting ${KEY} candidate ${ref:0:12} (build failed at stage: ${STAGE})"

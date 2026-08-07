@@ -241,6 +241,10 @@ jobs:
           ROOT: ${{ env.ACTUAL_ROOT }}
           VARIANT: ${{ inputs.variant }}
           RUN_MODE: ${{ inputs.run_mode }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_INPUTS_JSON: ${{ toJSON(inputs) }}
         run: |
           set -o pipefail
           bash builder/scripts/scout.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
