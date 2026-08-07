@@ -96,6 +96,14 @@ runs:
           https://x-access-token:${KERNEL_CLONE_TOKEN}@github.com/Zarathos30/GhostKernel.git \
           kernel-source
 
+    - name: Init Build Log
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        echo "GhostKernel Build Log" > "${GITHUB_WORKSPACE}/build.log"
+        echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "${GITHUB_WORKSPACE}/build.log"
+        echo "========================================" >> "${GITHUB_WORKSPACE}/build.log"
+
     - name: Parse Inputs
       id: setup_vars
       shell: bash
@@ -215,15 +223,19 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
-        bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }}
+        set -o pipefail
+        bash builder/scripts/setup_clang.sh ${{ inputs.clang_variant }} 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
     - name: Setup AnyKernel3
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
-        git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
-        cp kernel-source/anykernel/anykernel.sh anykernel/anykernel.sh
-        cp -r kernel-source/anykernel/tools/* anykernel/tools/
+        set -o pipefail
+        {
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          cp kernel-source/anykernel/anykernel.sh anykernel/anykernel.sh
+          cp -r kernel-source/anykernel/tools/* anykernel/tools/
+        } 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
     - name: Scout Checkpoint
       shell: bash
@@ -233,7 +245,9 @@ runs:
         VARIANT: ${{ inputs.variant }}
         RUN_MODE: ${{ inputs.run_mode }}
         GH_TOKEN: ${{ github.token }}
-      run: bash builder/scripts/scout.sh
+      run: |
+        set -o pipefail
+        bash builder/scripts/scout.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
     - name: Setup ccache
       shell: bash
@@ -241,7 +255,9 @@ runs:
       env:
         CLANG_VARIANT: ${{ inputs.clang_variant }}
         LTO: ${{ inputs.lto }}
-      run: bash builder/scripts/ccache_setup.sh
+      run: |
+        set -o pipefail
+        bash builder/scripts/ccache_setup.sh 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
 
     - name: Cache LTO Linker Cache
       if: inputs.lto == 'thin'
