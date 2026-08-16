@@ -107,7 +107,7 @@ jobs:
           echo "[+] Input combination valid: variant=${{ inputs.variant }}, root=${{ inputs.root }}"
 
       - name: Checkout Builder
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: builder
           fetch-depth: 0
@@ -280,7 +280,7 @@ jobs:
 
       - name: Upload Artifact
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: DumpC2J-${{ env.BUILD_NAME }}
           path: kernel-source/DumpC2J-Release
