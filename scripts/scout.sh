@@ -36,8 +36,8 @@ latest_sha_or_empty() {
 }
 
 ref_exists() {
-    local url_template="$1" sha="$2"
-    local repo_base branch compare_url status
+    local url_template="$1" sha="$2" key="$3"
+    local repo_base branch compare_url status check_url http_code
     [ -n "$sha" ] && [ "$sha" != "null" ] || return 1
 
     case "$url_template" in
@@ -55,7 +55,18 @@ ref_exists() {
                 http_code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 -H "Authorization: Bearer ${GH_TOKEN:-}" "$check_url" 2>/dev/null) || return 1
                 [ "$http_code" = "200" ]
             else
-                return 1
+                # Compare 404 ("no common ancestor") dopo un force-push che ha riscritto
+                # tutta la history: il commit puo' essere ancora vivo grazie al ref di
+                # backup refs/keep/pin-<key>-<sha> che mirror_sync congela a ogni sync.
+                # GitHub NON serve fetch by-SHA per oggetti orfani, ma serve il ref
+                # esatto: root_setup.sh lo recupera via "git fetch origin refs/keep/...".
+                if [ -n "$key" ]; then
+                    check_url="${repo_base}/git/ref/keep%2Fpin-${key}-${sha}"
+                    http_code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 -H "Authorization: Bearer ${GH_TOKEN:-}" "$check_url" 2>/dev/null) || return 1
+                    [ "$http_code" = "200" ]
+                else
+                    return 1
+                fi
             fi
             ;;
         *)
@@ -104,7 +115,7 @@ resolve_component() {
     while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.history[]?" "$MANIFEST")
 
     for pin in "${pins[@]}"; do
-        if [ -z "$url_template" ] || ref_exists "$url_template" "$pin"; then
+        if [ -z "$url_template" ] || ref_exists "$url_template" "$pin" "$key"; then
             valid="$pin"; break
         fi
         warn "${prefix}: pin ${pin:0:12} udah gak ada di remote (force-push/rewrite upstream?) — coba pin history berikutnya"

@@ -4,6 +4,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/functions.sh"
 
+if [ -f "${GITHUB_WORKSPACE}/build_skipped.marker" ]; then
+  SKIP_REPLY=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d parse_mode="HTML" \
+    -d "text=⏭️ <b>Build skipped</b> — root/SUSFS component unavailable (pin mancante, no candidate). No kernel produced.") || true
+  echo "$SKIP_REPLY" | grep -q '"ok":true' || warn "Failed to send skip notification."
+  exit 0
+fi
+
 KERNEL_DIR="${GITHUB_WORKSPACE}/kernel-source"
 ZIP_PATH="${KERNEL_DIR}/GhostKernel-Release/${ZIP_NAME}"
 

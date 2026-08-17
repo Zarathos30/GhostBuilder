@@ -45,6 +45,10 @@ run_all_libs() {
     CURRENT_BUILD_STAGE="$name"
     echo "[orchestrator] sourcing $(basename "$f")"
     source "$f"
+    if [ "${BUILD_SKIPPED:-false}" = "true" ]; then
+      echo "[!] Build skipped: komponen root/SUSFS unavailable (pin mancante) — no kernel, exit pulito."
+      exit 0
+    fi
   done
 }
 

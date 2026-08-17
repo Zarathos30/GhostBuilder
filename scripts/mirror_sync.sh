@@ -35,26 +35,37 @@ trap 'rm -rf "$WORK"' EXIT
 
 seed_pins() {
   local name="$1" upstream="$2"
-  local repo="${name}" mirror="${MIRROR_BASE}/${name}.git"
-  local key="" pins=() pin
+  local mirror="${MIRROR_BASE}/${name}.git"
+  local keys=() map k r
 
   for map in "${KEY_TO_REPO[@]}"; do
-    local k="${map%%:*}" r="${map##*:}"
-    [ "$r" = "$name" ] && key="$k"
+    k="${map%%:*}" r="${map##*:}"
+    [ "$r" = "$name" ] && keys+=("$k")
   done
-  [ -n "$key" ] || return 0
-
-  pins=()
+  [ ${#keys[@]} -gt 0 ] || return 0
   [ -f "$MANIFEST" ] || return 0
-  while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.good, .${key}.history[]?" "$MANIFEST" 2>/dev/null | sort -u)
 
-  for pin in "${pins[@]}"; do
-    [ -n "$pin" ] && [ "$pin" != "null" ] || continue
-    echo "[*] seeding ${key} pin ${pin:0:12} on ${name}..."
-    (cd "$WORK/$name.git" && timeout 60 git fetch --quiet "$upstream" "$pin" 2>/dev/null) || { echo "[!] pin ${pin:0:12} not fetchable from upstream — skip"; continue; }
-    git -C "$WORK/$name.git" push "$mirror" "FETCH_HEAD:refs/keep/pin-$key-$pin" > /dev/null 2>&1 \
-      && echo "    saved refs/keep/pin-$key-${pin:0:12}" \
-      || echo "[!] backup push failed for ${pin:0:12}"
+  local key pins=() pin
+  for key in "${keys[@]}"; do
+    pins=()
+    while IFS= read -r pin; do pins+=("$pin"); done < <(jq -r ".${key}.good, .${key}.history[]?" "$MANIFEST" 2>/dev/null | sort -u)
+
+    for pin in "${pins[@]}"; do
+      [ -n "$pin" ] && [ "$pin" != "null" ] || continue
+      if git ls-remote "$mirror" "refs/keep/pin-${key}-${pin}" 2>/dev/null | grep -q "$pin"; then
+        echo "[=] keep ref gia' esiste per ${key} ${pin:0:12} — skip"
+        continue
+      fi
+      echo "[*] seeding ${key} pin ${pin:0:12} on ${name}..."
+      if (cd "$WORK/$name.git" && timeout 60 git fetch --quiet "$upstream" "$pin" 2>/dev/null) || \
+         (cd "$WORK/$name.git" && timeout 60 git fetch --quiet "$mirror" "$pin" 2>/dev/null); then
+        git -C "$WORK/$name.git" push "$mirror" "FETCH_HEAD:refs/keep/pin-$key-$pin" > /dev/null 2>&1 \
+          && echo "    saved refs/keep/pin-$key-${pin:0:12}" \
+          || echo "[!] backup push failed for ${pin:0:12}"
+      else
+        echo "[!] pin ${pin:0:12} not fetchable (upstream o mirror) — skip"
+      fi
+    done
   done
 }
 
