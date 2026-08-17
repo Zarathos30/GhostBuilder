@@ -290,6 +290,7 @@ runs:
         TELEGRAM_TOKEN: ${{ inputs.telegram_token }}
         TELEGRAM_CHAT_ID: ${{ inputs.telegram_chat_id }}
       run: |
+        set -o pipefail
         BUILD_START=$(date +%s)
         bash builder/scripts/progress.sh 2400 "$BUILD_START" &
         bash builder/scripts/build.sh 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
