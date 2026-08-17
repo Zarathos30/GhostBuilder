@@ -38,6 +38,14 @@ if [ "$VARIANT" == "stock" ]; then
   touch "$KERNEL_DIR/drivers/kernelsu/Makefile"
 else
   mkdir -p "$MODULES_DIR"
+  SKIP_VAR="SKIP_${PIN_PREFIX}"
+  if [ "${!SKIP_VAR}" = "true" ]; then
+    echo "[!] ${PIN_KEY} skipped this run (no pin yet & candidate slot used by another component) — not building this variant."
+    echo "BUILD_SKIPPED=true" >> "$GITHUB_ENV"
+    export BUILD_SKIPPED=true
+    touch "${GITHUB_WORKSPACE}/build_skipped.marker"
+    return 0
+  fi
 
   REF_VAR="${PIN_PREFIX}_REF"
   RESOLVED_SHA="${!REF_VAR}"
@@ -53,18 +61,43 @@ else
 
   echo "[+] Checkout ${PIN_KEY} @ ${RESOLVED_SHA:0:8} (from scout.sh)"
   if ! (cd "$MODULES_DIR/$REPO_NAME" && git checkout -B "$BRANCH" --quiet "$RESOLVED_SHA" 2>/dev/null); then
-    echo "[-] SHA not in branch history — fetching pinned SHA directly..."
-    (cd "$MODULES_DIR/$REPO_NAME" && timeout 60 git fetch origin "$RESOLVED_SHA") || { echo "[-] Pinned SHA fetch failed/timed out"; return 1; }
-    (cd "$MODULES_DIR/$REPO_NAME" && git checkout -B "$BRANCH" --quiet "$RESOLVED_SHA")
+    echo "[-] SHA not in branch history — trying mirror keep ref first..."
+    if (cd "$MODULES_DIR/$REPO_NAME" && timeout 60 git fetch -q origin "refs/keep/pin-${PIN_KEY}-${RESOLVED_SHA}" 2>/dev/null && git checkout -B "$BRANCH" --quiet FETCH_HEAD); then
+      :
+    elif (cd "$MODULES_DIR/$REPO_NAME" && timeout 60 git fetch -q origin "$RESOLVED_SHA" 2>/dev/null && git checkout -B "$BRANCH" --quiet FETCH_HEAD); then
+      :
+    else
+      echo "[-] Pinned SHA fetch failed/timed out (branch + keep ref + bare SHA)"
+      return 1
+    fi
   fi
 
   echo "MANAGER_ROOT_NAME=${ROOT}" >> "$GITHUB_ENV"
   echo "MANAGER_REPO_DIR=${MODULES_DIR}/${REPO_NAME}" >> "$GITHUB_ENV"
   cd "$GITHUB_WORKSPACE"
 
+  if [ ! -d "$MODULES_DIR/$REPO_NAME/kernel/uapi" ] && [ -d "$MODULES_DIR/$REPO_NAME/uapi" ]; then
+    ln -sfn ../uapi "$MODULES_DIR/$REPO_NAME/kernel/uapi"
+  fi
+
+  # Symlink DEVE esistere prima di qualsiasi skip: drivers/Kconfig lo include
+  # incondizionatamente, altrimenti kconfig.sh fallisce con
+  # "can't open file drivers/kernelsu/Kconfig".
+  echo "[+] Symlinking $REPO_NAME to drivers/kernelsu..."
+  ln -sf "$MODULES_DIR/$REPO_NAME/kernel" "$KERNEL_DIR/drivers/kernelsu"
+
   if [ "$VARIANT" == "susfs" ]; then
     SUSFS_REPO_URL="https://github.com/Zarathos30/susfs4ksu.git"
+    SUSFS_SKIP_VAR="SKIP_SUSFS4KSU"
     SUSFS_REF_VAR="SUSFS4KSU_REF"
+
+    if [ "${!SUSFS_SKIP_VAR:-}" = "true" ]; then
+      echo "[!] ${SUSFS_REF_VAR%_REF} skipped this run (no pin yet & candidate slot used by another component) — not building this variant."
+      echo "BUILD_SKIPPED=true" >> "$GITHUB_ENV"
+      export BUILD_SKIPPED=true
+      touch "${GITHUB_WORKSPACE}/build_skipped.marker"
+      return 0
+    fi
 
     SUSFS_DIR="$MODULES_DIR/susfs4ksu"
     SUSFS_BRANCH="gki-android15-6.6"
@@ -91,7 +124,17 @@ else
     fi
 
     echo "[+] Checkout susfs4ksu @ ${SUSFS_TARGET_SHA:0:8} (from scout.sh)"
-    (cd "$SUSFS_DIR" && git checkout --quiet "$SUSFS_TARGET_SHA")
+    if ! (cd "$SUSFS_DIR" && git checkout --quiet "$SUSFS_TARGET_SHA" 2>/dev/null); then
+      echo "[-] SHA not in branch history — trying mirror keep ref first..."
+      if (cd "$SUSFS_DIR" && timeout 60 git fetch -q origin "refs/keep/pin-susfs4ksu-${SUSFS_TARGET_SHA}" 2>/dev/null && git checkout --quiet FETCH_HEAD); then
+        :
+      elif (cd "$SUSFS_DIR" && timeout 60 git fetch -q origin "$SUSFS_TARGET_SHA" 2>/dev/null && git checkout --quiet FETCH_HEAD); then
+        :
+      else
+        echo "[-] SUSFS pinned SHA fetch failed/timed out (branch + keep ref + bare SHA)"
+        return 1
+      fi
+    fi
     echo "SUSFS_USED_SHA=${SUSFS_TARGET_SHA}" >> "$GITHUB_ENV"
 
     echo "[+] Injecting SUSFS kernel sources..."
@@ -121,13 +164,6 @@ else
       fi
     fi
   fi
-
-  if [ ! -d "$MODULES_DIR/$REPO_NAME/kernel/uapi" ] && [ -d "$MODULES_DIR/$REPO_NAME/uapi" ]; then
-    ln -sfn ../uapi "$MODULES_DIR/$REPO_NAME/kernel/uapi"
-  fi
-
-  echo "[+] Symlinking $REPO_NAME to drivers/kernelsu..."
-  ln -sf "$MODULES_DIR/$REPO_NAME/kernel" "$KERNEL_DIR/drivers/kernelsu"
 fi
 
 if [ "$VARIANT" == "susfs" ]; then
