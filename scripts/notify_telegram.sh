@@ -32,7 +32,6 @@ format_changelog() {
   local raw_log="$1"
   local -A groups
   local order=(added fixed changed)
-  local -A labels=( [added]="✨ Added" [fixed]="🐛 Fixed" [changed]="🔧 Changed" )
   local commit_body subject type desc key trailer_val
 
   while IFS= read -r -d $'\x1e' commit_body; do
@@ -75,9 +74,7 @@ format_changelog() {
 
   local out=""
   for key in "${order[@]}"; do
-    if [ -n "${groups[$key]:-}" ]; then
-      out="${out}<b>${labels[$key]}:</b>\n$(printf '%b' "${groups[$key]}")\n"
-    fi
+    [ -n "${groups[$key]:-}" ] && out="${out}$(printf '%b' "${groups[$key]}")\n"
   done
   printf '%s' "$out"
 }
@@ -98,6 +95,7 @@ esac
 
 FILE_SIZE=$(du -h "$ZIP_PATH" | cut -f1)
 SHA256_FULL=$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)
+SHA256_SHORT="${SHA256_FULL:0:8}…${SHA256_FULL: -8}"
 
 BUILD_DATE=$(date -u "+%Y-%m-%d %H:%M UTC")
 
@@ -112,7 +110,7 @@ CAPTION="🔧 <b>Ghost Kernel Build</b>
 🔢 ${HZ_ID} Hz · 🔗 LTO: ${LTO_ACTUAL}
 ⚙️ ${KBUILD_COMPILER_STRING}
 ⏱️ ${DUR_TEXT} · 💾 ${FILE_SIZE}
-🔐 <code>${SHA256_FULL}</code>
+🔐 <code>${SHA256_SHORT}</code>
 ${CHANGELOG_TEXT}
 📅 ${BUILD_DATE}"
 
