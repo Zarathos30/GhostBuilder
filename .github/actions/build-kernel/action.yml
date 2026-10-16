@@ -168,19 +168,26 @@ runs:
           libssl-dev libxml2 lzop squashfs-tools rsync zip zlib1g-dev \
           python3 clang lld llvm jq
 
-    - name: Get Cache Week
-      id: cacheweek
+    - name: Resolve Clang Ref
+      id: clangref
       if: inputs.clang_variant != 'neutron'
       shell: bash
       working-directory: ${{ github.workspace }}
-      run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        REF="$(bash builder/scripts/clang_resolve.sh "${{ inputs.clang_variant }}")"
+        [ -n "$REF" ] || { echo "[!] could not resolve latest ${{ inputs.clang_variant }} clang"; exit 1; }
+        echo "[+] Latest ${{ inputs.clang_variant }} clang: $REF"
+        echo "CLANG_REF=$REF" >> "$GITHUB_ENV"
+        echo "key=$(printf '%s' "$REF" | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
 
     - name: Cache Clang Toolchain
       if: inputs.clang_variant != 'neutron'
       uses: actions/cache@v4
       with:
         path: ~/toolchains/${{ inputs.clang_variant }}-clang
-        key: clang-${{ inputs.clang_variant }}-${{ steps.cacheweek.outputs.week }}
+        key: clang-${{ inputs.clang_variant }}-${{ steps.clangref.outputs.key }}
 
     - name: Setup Clang
       shell: bash

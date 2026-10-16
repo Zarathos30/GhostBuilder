@@ -2,6 +2,9 @@
 set -eo pipefail
 
 CLANG_VARIANT="${1:-neutron}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# CLANG_REF (set by the Resolve Clang Ref step) pins this run to the exact ref the cache key was built from.
+resolve_ref() { echo "${CLANG_REF:-$(bash "${SCRIPT_DIR}/clang_resolve.sh" "$1")}"; }
 TOOLCHAIN_DIR="${HOME}/toolchains/${CLANG_VARIANT}-clang"
 
 if [ "${CLANG_VARIANT}" != "neutron" ] && [ -x "${TOOLCHAIN_DIR}/bin/clang" ]; then
@@ -55,8 +58,7 @@ WGETRC_EOF
     COMPILER_STRING="Neutron Clang ${NEUTRON_VER}"
     ;;
   cirrus)
-    CIRRUS_URL=$(curl -s --max-time 30 https://api.github.com/repos/greenforce-project/greenforce_clang/releases/latest \
-      | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((x['browser_download_url'] for x in d.get('assets',[]) if x['name'].endswith('.tar.gz')), ''))")
+    CIRRUS_URL=$(resolve_ref cirrus) || CIRRUS_URL=""
     if [ -z "${CIRRUS_URL}" ]; then
       echo "[!] Cirrus release not found"
       exit 1
@@ -71,8 +73,9 @@ WGETRC_EOF
     COMPILER_STRING="Cirrus Clang ${GF_VERSION}"
     ;;
   aosp)
-    CLANG_VER="r596125"
-    AOSP_TAG="android-17.0.0_r1"
+    AOSP_REF=$(resolve_ref aosp)
+    AOSP_TAG="${AOSP_REF%%/*}"
+    CLANG_VER="${AOSP_REF##*/}"
     AOSP_URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/${AOSP_TAG}/clang-${CLANG_VER}.tar.gz"
     echo "[*] AOSP clang latest: ${CLANG_VER} (tag: ${AOSP_TAG})"
     mkdir -p "${HOME}/toolchains/aosp-clang"
@@ -84,7 +87,7 @@ WGETRC_EOF
     COMPILER_STRING="AOSP Clang ${AOSP_VER} (${CLANG_VER})"
     ;;
   weebx)
-    WEEBX_URL=$(curl -s --max-time 30 https://raw.githubusercontent.com/XSans0/WeebX-Clang/main/main/link.txt)
+    WEEBX_URL=$(resolve_ref weebx) || WEEBX_URL=""
     [ -z "${WEEBX_URL}" ] && { echo "[!] WeebX URL not found"; exit 1; }
     mkdir -p "${HOME}/toolchains/weebx-clang"
     curl -fL --retry 5 --retry-delay 15 --retry-all-errors -C - --max-time 300 -o /tmp/weebx-clang.tar.gz "${WEEBX_URL}" || { echo "[!] WeebX clang download failed/timed out"; exit 1; }
@@ -95,7 +98,7 @@ WGETRC_EOF
     COMPILER_STRING="WeebX Clang ${WX_VER}"
     ;;
   zyc)
-    ZYC_URL=$(curl -sL --max-time 30 https://raw.githubusercontent.com/ZyCromerZ/Clang/main/Clang-main-link.txt | tr -d '[:space:]')
+    ZYC_URL=$(resolve_ref zyc) || ZYC_URL=""
     echo "[*] ZyC URL: ${ZYC_URL}"
     mkdir -p "${HOME}/toolchains/zyc-clang"
     if [ -z "$ZYC_URL" ]; then
