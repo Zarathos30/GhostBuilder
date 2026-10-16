@@ -92,7 +92,7 @@ esac
 
 FEAT="✅ HTSR 240Hz Touch\n✅ WiFi Performance Exploits\n✅ KGSL GPU Bypass\n✅ Mobile Data Exploits\n"
 [ "${INPUT_BYPASS:-off}" == "on" ]      && FEAT="${FEAT}✅ Bypass Charging\n"
-[ "${INPUT_NOMOUNT:-off}" == "on" ]     && FEAT="${FEAT}✅ NoMount (VFS)\n"
+[ "${INPUT_NOMOUNT:-off}" == "on" ]     && FEAT="${FEAT}✅ NoMount (VFS) ${NOMOUNT_VER:+(${NOMOUNT_VER})}\n"
 [ "${INPUT_DROIDSPACES:-off}" == "on" ] && FEAT="${FEAT}✅ Droidspaces\n"
 [ "${INPUT_DEBUG:-off}" == "on" ]       && FEAT="${FEAT}🐛 Debug Mode\n"
 

@@ -30,6 +30,7 @@ LIB_ORDER=(
   defaults.sh
   adjust_inputs.sh
   root_setup.sh
+  nomount_sync.sh
   branding.sh
   baseband_guard.sh
   rekernel.sh
