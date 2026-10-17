@@ -114,6 +114,7 @@ if [ "$DROIDSPACES" == "on" ]; then
     -e CONFIG_NETFILTER_XT_TARGET_REJECT -e CONFIG_NETFILTER_XT_TARGET_LOG \
     -e CONFIG_NETFILTER_XT_MATCH_RECENT -e CONFIG_IP_SET \
     -e CONFIG_IP_SET_HASH_IP -e CONFIG_IP_SET_HASH_NET -e CONFIG_NETFILTER_XT_SET \
-    -e CONFIG_TMPFS_POSIX_ACL -e CONFIG_TMPFS_XATTR
-  echo "[+] Droidspaces configs re-forced after olddefconfig"
+    -e CONFIG_TMPFS_POSIX_ACL -e CONFIG_TMPFS_XATTR \
+    -e CONFIG_USER_NS
+  echo "[+] Droidspaces configs re-forced after olddefconfig (incl. CONFIG_USER_NS)"
 fi
