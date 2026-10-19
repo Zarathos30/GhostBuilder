@@ -9,6 +9,6 @@ make -C "$KERNEL_DIR" \
   "-j${CPUS}" O="$OUT_DIR" \
   CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm \
   OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \
-  LLVM=1 LLVM_IAS=1 \
+  LLVM=1 LLVM_IAS=1 KALLSYMS_EXTRA_PASS=1 \
   KCFLAGS="$KERNEL_KCFLAGS" LDFLAGS="$KERNEL_LDFLAGS" \
   || { warn "Build failed!"; return 1; }
