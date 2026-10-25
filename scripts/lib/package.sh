@@ -16,6 +16,12 @@ for img in Image.gz-dtb Image.gz Image; do
   [ -f "$ZIMAGE_DIR/$img" ] && { cp -v "$ZIMAGE_DIR/$img" "$TEMP_DIR/"; break; }
 done
 
+# Kasumi LKM: built by lib/kasumi.sh when enabled — ship it in the zip
+# (manual insmod required after flashing)
+if [ -n "${KASUMI_KO_PATH:-}" ] && [ -f "$KASUMI_KO_PATH" ]; then
+  cp -v "$KASUMI_KO_PATH" "$TEMP_DIR/kasumi_lkm.ko"
+fi
+
 
 TIME=$(date "+%Y%m%d-%H%M")
 KVER=$(grep '^VERSION = ' "$KERNEL_DIR/Makefile" | awk '{print $3}')
