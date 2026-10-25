@@ -1,4 +1,4 @@
-name: DumpC2J Kernel Builder (Matrix)
+name: Ghost Kernel Builder (Matrix)
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         description: "Custom Kernel Name (LOCALVERSION)"
         required: true
         type: string
-        default: "-DumpC2J"
+        default: "-GhostKernel-1.9.3"
       clang_variant:
         description: "Clang Toolchain (shared across all builds)"
         required: true
@@ -84,6 +84,24 @@ on:
         required: true
         type: boolean
         default: false
+      spoof_uname:
+        description: "Spoof Uname (SUSFS/Stock Naming)"
+        required: true
+        type: boolean
+        default: false
+      kasumi:
+        description: "Kasumi (path hiding/spoofing LKM, manual insmod required)"
+        required: true
+        type: boolean
+        default: false
+      run_mode:
+        description: "Run Mode (Release=pinned only, Test=check upstream)"
+        required: true
+        type: choice
+        options:
+          - Release
+          - Test
+        default: Release
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -158,8 +176,14 @@ jobs:
           droidspaces: ${{ inputs.droidspaces }}
           debug: ${{ inputs.debug }}
           nomount: ${{ inputs.nomount }}
+          spoof_uname: ${{ inputs.spoof_uname }}
+          kasumi: ${{ inputs.kasumi }}
+          run_mode: ${{ inputs.run_mode }}
           kernel_version_spoof: ${{ inputs.kernel_version_spoof }}
-          kernel_clone_token: ${{ secrets.KERNEL_CLONE_TOKEN }}
+          kernel_clone_token: ${{ secrets.GH_TOKEN }}
+          telegram_token: ${{ secrets.TELEGRAM_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          gh_token: ${{ secrets.GH_TOKEN }}
 
       - name: Save ccache (local part)
         if: always()
